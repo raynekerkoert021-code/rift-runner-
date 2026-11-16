@@ -127,4 +127,163 @@ function drawBackground(){
  ctx.lineTo(0,650);
  ctx.closePath();
  ctx.fill();
+ 
+ ctx.strokeStyle="#a943ff";
+ ctx.lineWidth=3;
+ ctx.beginPath();
+ ctx.moveTo(115,90);
+ ctx.lineTo(0,650);
+ ctx.moveTo(365,90);
+ ctx.lineTo(480,650);
+ ctx.stroke();
+
+ for(let i=1;i<=2;i++){
+  let x=115+i*83;
+  ctx.strokeStyle="#7041b5";
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(x,90);
+  ctx.lineTo(240+(i-1)*120,650);
+  ctx.stroke();
+ }
+
+ for(let y=(frame*speed)%70;y<650;y+=70){
+  ctx.fillStyle="#9e4aff";
+  ctx.fillRect(230,y,4,25);
+ }
+
+ objects.forEach(o=>{
+  let scale=.45+o.y/650;
+  let x=240+(o.lane-1)*scale*125;
+  let size=22+scale*18;
+
+  if(o.type==="orb"){
+   ctx.shadowBlur=18;
+   ctx.shadowColor="#43edff";
+   ctx.fillStyle="#43edff";
+   ctx.beginPath();
+   ctx.arc(x,o.y,size*.45,0,Math.PI*2);
+   ctx.fill();
+  }else{
+   ctx.shadowBlur=15;
+   ctx.shadowColor="#ff38bb";
+   ctx.fillStyle="#ff39a8";
+   ctx.fillRect(x-size/2,o.y-size/2,size,size);
+   ctx.strokeStyle="#ffd4fa";
+   ctx.strokeRect(x-size/2,o.y-size/2,size,size);
+  }
+  ctx.shadowBlur=0;
+ });
+
+ let px=240+(lane-1)*110;
+ let py=550-jumping;
+
+ ctx.shadowBlur=25;
+ ctx.shadowColor=phasing?"#40faff":"#d34cff";
+ ctx.fillStyle=phasing?"#48faff":"#dc8aff";
+ ctx.beginPath();
+ ctx.roundRect(px-19,py-27,38,54,12);
+ ctx.fill();
+
+ ctx.fillStyle="white";
+ ctx.fillRect(px-10,py-15,7,7);
+ ctx.fillRect(px+4,py-15,7,7);
+ ctx.shadowBlur=0;
+
+ if(phasing>0){
+  ctx.strokeStyle="#43edff";
+  ctx.lineWidth=5;
+  ctx.beginPath();
+  ctx.arc(px,py,40,0,Math.PI*2);
+  ctx.stroke();
+ }
+}
+
+function startGame(){
+ lane=1;
+ score=0;
+ energy=0;
+ objects=[];
+ frame=0;
+ phasing=0;
+ jumping=0;
+ speed=4;
+ running=true;
+
+ if(animation)cancelAnimationFrame(animation);
+
+ document.getElementById("message").textContent="RUNNER ACTIVE!";
+ updateHUD();
+ loop();
+}
+
+function loop(){
+ if(!running)return;
+
+ frame++;
+ score++;
+
+ if(frame%55===0){
+  objects.push({
+   lane:Math.floor(Math.random()*3),
+   y:80,
+   type:Math.random()<.4?"orb":"block"
+  });
+ }
+
+ objects.forEach(o=>o.y+=speed);
+ objects=objects.filter(o=>o.y<700);
+ 
+ for(let i=objects.length-1;i>=0;i--){
+  let o=objects[i];
+
+  if(o.y>510&&o.y<590&&o.lane===lane){
+   if(o.type==="orb"){
+    energy++;
+    objects.splice(i,1);
+   }else if(phasing<=0&&jumping<35){
+    running=false;
+    document.getElementById("message").textContent=
+     "RIFT COLLISION! Tap RESTART to try again.";
+   }
+  }
+ }
+
+ if(phasing>0)phasing--;
+ if(jumping>0)jumping-=5;
+
+ if(score>best){
+  best=score;
+  localStorage.setItem("riftBest",best);
+ }
+
+ updateHUD();
+ drawBackground();
+
+ if(running){
+  animation=requestAnimationFrame(loop);
+ }
+}
+
+canvas.addEventListener("touchstart",e=>{
+ canvas.dataset.x=e.touches[0].clientX;
+});
+
+canvas.addEventListener("touchend",e=>{
+ let dx=e.changedTouches[0].clientX-Number(canvas.dataset.x);
+ if(Math.abs(dx)>25)move(dx>0?1:-1);
+});
+
+document.addEventListener("keydown",e=>{
+ if(e.key==="ArrowLeft")move(-1);
+ if(e.key==="ArrowRight")move(1);
+ if(e.key===" ")jump();
+});
+
+drawBackground();
+</script>
+</body>
+</html>
+
+
 
