@@ -121,3 +121,349 @@ button{
 </div>
 
 <script>
+
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+
+let lane=1,playerX=240,score=0,energy=0;
+let best=+(localStorage.getItem('riftBest')||0);
+let objects=[],particles=[];
+let running=false,paused=false,frame=0;
+let speed=4.2,jumpT=0,phaseT=0,last=0,raf=0;
+const laneX=[150,240,330];
+
+$('best').textContent=best;
+
+function hud(){
+ $('score').textContent=score;
+ $('best').textContent=best;
+ $('energy').textContent=energy;
+}
+
+function toast(message){
+ $('toast').textContent=message;
+ $('toast').classList.add('show');
+ setTimeout(()=>$('toast').classList.remove('show'),900);
+}
+
+function start(){
+ lane=1;
+ playerX=240;
+ score=0;
+ energy=0;
+ objects=[];
+ particles=[];
+ frame=0;
+ speed=4.2;
+ jumpT=0;
+ phaseT=0;
+ running=true;
+ paused=false;
+ $('overlay').classList.add('hidden');
+ $('pauseBtn').textContent='Ⅱ';
+ hud();
+ last=0;
+ cancelAnimationFrame(raf);
+ raf=requestAnimationFrame(loop);
+}
+
+function end(){
+ running=false;
+ $('overlay').classList.remove('hidden');
+ $('overlay').innerHTML=`
+ <h1>RIFT COLLISION</h1>
+ <p>Run score: <b>${score}</b><br>
+ Best score: <b>${best}</b><br>
+ Energy collected: <b>${energy}</b></p>
+ <p>Swipe smarter. Go further.</p>
+ <button id="startBtn">RUN AGAIN</button>`;
+ $('startBtn').onclick=start;
+}
+
+function steer(direction){
+ if(!running||paused)return;
+ lane=Math.max(0,Math.min(2,lane+direction));
+}
+
+function jump(){
+ if(running&&!paused&&jumpT<=0){
+  jumpT=34;
+  toast('JUMP!');
+ }
+}
+
+function phase(){
+ if(!running||paused)return;
+ if(energy<5){toast('NEED 5 ENERGY');return}
+ if(phaseT>0)return;
+ energy-=5;
+ phaseT=100;
+ hud();
+ toast('RIFT SHIFT ACTIVATED');
+}
+
+function spawn(){
+ let l=Math.floor(Math.random()*3);
+ let type=Math.random()<.24?'orb':
+  (Math.random()<.25?'barrier':'block');
+ objects.push({
+  lane:l,y:-40,type,
+  spin:Math.random()*6
+ });
+}
+
+function addParticles(x,y,color,n=9){
+ for(let i=0;i<n;i++){
+  particles.push({
+   x,y,
+   vx:(Math.random()-.5)*5,
+   vy:(Math.random()-.5)*5,
+   life:24,color
+  });
+ }
+}
+
+function rounded(x,y,w,h,r){
+ ctx.beginPath();
+ ctx.roundRect(x,y,w,h,r);
+ ctx.fill();
+}
+
+function draw(){
+ const w=480,h=700;
+ let g=ctx.createLinearGradient(0,0,0,h);
+ g.addColorStop(0,'#08091e');
+ g.addColorStop(.55,'#1b1040');
+ g.addColorStop(1,'#080817');
+ ctx.fillStyle=g;
+ ctx.fillRect(0,0,w,h);
+
+ // Futuristic city skyline
+ for(let i=0;i<13;i++){
+  let x=i*40-8;
+  let bh=110+(i*37%170);
+  ctx.fillStyle=i%2?'#151238':'#201447';
+  ctx.fillRect(x,245-bh,31,bh+160);
+  for(let y=260-bh;y<390;y+=22){
+   ctx.fillStyle=(i+y)%3?'#a43fff':'#40eaff';
+   ctx.globalAlpha=.45;
+   ctx.fillRect(x+7,y,4,8);
+   ctx.fillRect(x+18,y,4,8);
+   ctx.globalAlpha=1;
+  }
+ }
+
+ // Neon road
+ ctx.fillStyle='#090a20';
+ ctx.beginPath();
+ ctx.moveTo(160,180);
+ ctx.lineTo(320,180);
+ ctx.lineTo(480,700);
+ ctx.lineTo(0,700);
+ ctx.closePath();
+ ctx.fill();
+
+ ctx.strokeStyle='#b044ff';
+ ctx.lineWidth=4;
+ ctx.shadowColor='#b044ff';
+ ctx.shadowBlur=15;
+ ctx.beginPath();
+ ctx.moveTo(160,180);
+ ctx.lineTo(0,700);
+ ctx.moveTo(320,180);
+ ctx.lineTo(480,700);
+ ctx.stroke();
+ ctx.shadowBlur=0;
+
+ for(let i=1;i<=2;i++){
+  ctx.strokeStyle='#593b9c';
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(i===1?213:267,180);
+  ctx.lineTo(i===1?160:320,700);
+  ctx.stroke();
+ }
+
+ for(let y=(frame*speed*2)%85;y<700;y+=85){
+  let p=(y-180)/520;
+  ctx.fillStyle='#6c46ff';
+  ctx.globalAlpha=.25+p*.7;
+  ctx.fillRect(237,y,6,18+p*20);
+  ctx.globalAlpha=1;
+ }
+
+ // Obstacles and energy
+ objects.forEach(o=>{
+  let p=Math.max(.15,(o.y+80)/780);
+  let x=240+(o.lane-1)*p*150;
+  let s=18+p*30;
+
+  ctx.save();
+  ctx.translate(x,o.y);
+  ctx.shadowBlur=22;
+  ctx.shadowColor=o.type==='orb'?'#4df7ff':'#ff3dbd';
+
+  if(o.type==='orb'){
+   ctx.fillStyle='#63f7ff';
+   ctx.beginPath();
+   ctx.arc(0,0,s*.55,0,Math.PI*2);
+   ctx.fill();
+   ctx.strokeStyle='white';
+   ctx.stroke();
+  }else{
+   ctx.fillStyle=o.type==='barrier'?'#ff9c37':'#ff3fae';
+   rounded(-s/2,-s/2,s,s,8);
+   ctx.strokeStyle='#ffd6ff';
+   ctx.lineWidth=2;
+   ctx.strokeRect(-s/2,-s/2,s,s);
+  }
+  ctx.restore();
+ });
+
+ // Runner
+ let py=585-(jumpT>0?
+  Math.sin((34-jumpT)/34*Math.PI)*105:0);
+
+ ctx.fillStyle='#02030a88';
+ ctx.beginPath();
+ ctx.ellipse(playerX,610,28,8,0,0,Math.PI*2);
+ ctx.fill();
+
+ ctx.save();
+ ctx.translate(playerX,py);
+ ctx.shadowBlur=25;
+ ctx.shadowColor=phaseT?'#43f7ff':'#e34dff';
+ ctx.fillStyle=phaseT?'#53f7ff':'#c65bff';
+ rounded(-19,-29,38,58,12);
+ ctx.fillStyle='#f4ffff';
+ rounded(-11,-16,7,7,2);
+ rounded(4,-16,7,7,2);
+ ctx.restore();
+
+ if(phaseT>0){
+  ctx.strokeStyle='#4cf6ff';
+  ctx.lineWidth=4;
+  ctx.beginPath();
+  ctx.arc(playerX,py,43+Math.sin(frame*.3)*5,0,Math.PI*2);
+  ctx.stroke();
+ }
+
+ particles.forEach(p=>{
+  ctx.globalAlpha=p.life/24;
+  ctx.fillStyle=p.color;
+  ctx.fillRect(p.x,p.y,4,4);
+  ctx.globalAlpha=1;
+ });
+}
+
+function loop(t){
+ if(!running||paused)return;
+
+ let dt=Math.min(2,(t-last||16.7)/16.7);
+ last=t;
+ frame++;
+
+ score+=Math.max(1,Math.floor(dt));
+ speed=Math.min(9,4.2+score/850);
+
+ playerX+=(laneX[lane]-playerX)*Math.min(1,.24*dt);
+
+ if(frame%Math.max(27,Math.floor(68-score/90))===0)spawn();
+
+ objects.forEach(o=>o.y+=speed*dt*1.15);
+
+ for(let i=objects.length-1;i>=0;i--){
+  let o=objects[i];
+
+  if(o.y>545&&o.y<625&&o.lane===lane){
+   if(o.type==='orb'){
+    energy++;
+    addParticles(playerX,o.y,'#55f5ff',12);
+    objects.splice(i,1);
+   }else if(phaseT<=0&&jumpT<12){
+    end();
+    return;
+   }
+  }
+ }
+
+ objects=objects.filter(o=>o.y<740);
+
+ particles.forEach(p=>{
+  p.x+=p.vx;
+  p.y+=p.vy;
+  p.life--;
+ });
+ particles=particles.filter(p=>p.life>0);
+
+ if(jumpT>0)jumpT=Math.max(0,jumpT-dt);
+ if(phaseT>0)phaseT=Math.max(0,phaseT-dt);
+
+ if(score>best){
+  best=score;
+  localStorage.setItem('riftBest',best);
+ }
+
+ hud();
+ draw();
+ raf=requestAnimationFrame(loop);
+}
+
+// Finger swipe controls
+let sx=0,sy=0,tracking=false;
+
+canvas.addEventListener('pointerdown',e=>{
+ sx=e.clientX;
+ sy=e.clientY;
+ tracking=true;
+ canvas.setPointerCapture(e.pointerId);
+});
+
+canvas.addEventListener('pointerup',e=>{
+ if(!tracking)return;
+ tracking=false;
+
+ let dx=e.clientX-sx;
+ let dy=e.clientY-sy;
+
+ if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;
+
+ if(Math.abs(dx)>Math.abs(dy)){
+  steer(dx>0?1:-1);
+ }else if(dy<0){
+  jump();
+ }
+});
+
+canvas.addEventListener('pointercancel',()=>{
+ tracking=false;
+});
+
+$('startBtn').onclick=start;
+$('phaseBtn').onclick=phase;
+
+$('pauseBtn').onclick=()=>{
+ if(!running)return;
+ paused=!paused;
+ $('pauseBtn').textContent=paused?'▶':'Ⅱ';
+
+ if(!paused){
+  last=0;
+  raf=requestAnimationFrame(loop);
+ }else{
+  cancelAnimationFrame(raf);
+ }
+};
+
+document.addEventListener('keydown',e=>{
+ if(e.key==='ArrowLeft')steer(-1);
+ if(e.key==='ArrowRight')steer(1);
+ if(e.key==='ArrowUp'||e.key===' ')jump();
+});
+
+draw();
+hud();
+</script>
+</body>
+</html>
