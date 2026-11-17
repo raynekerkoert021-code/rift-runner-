@@ -647,9 +647,6 @@ function resume(){
 
 function startGame(){
   audioStart();
-  $('startScreen').classList.remove('show');
-  $('gameOver').classList.remove('show');
-  $('pauseOverlay').classList.remove('show');
   reset();
   running=true;
   paused=false;
