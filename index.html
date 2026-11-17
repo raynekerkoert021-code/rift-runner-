@@ -668,6 +668,8 @@ function bindButton(id,action){
 }
 
 bindButton('startBtn',startGame);
+ bindButton('restartPause',startGame);
+bindButton('againBtn',startGame);
 bindButton('restartBtn',startGame);
 bindButton('pauseBtn',()=>{
   if(paused)resume();
