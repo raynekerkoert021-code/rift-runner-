@@ -1,3 +1,607 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>RIFT RUNNER: NEON DRIFT</title>
+<style>
+:root{--pink:#ff35ca;--cyan:#39efff;--purple:#a66aff;--bg:#080512}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:white;font-family:Arial,sans-serif;touch-action:none}
+#game{position:fixed;inset:0}
+canvas{display:block}
+#hud{display:none;position:fixed;inset:0;pointer-events:none}
+.top{position:absolute;top:12px;left:10px;right:10px;display:flex;justify-content:space-between;gap:6px}
+.stat{background:#100b25dd;border:1px solid #a66aff77;border-radius:12px;padding:8px 10px;min-width:0;box-shadow:0 0 15px #8b40ff33}
+.stat small{display:block;font-size:9px;letter-spacing:1.5px;color:#b9a9d7}
+.stat strong{font-size:18px}
+#power{position:absolute;top:76px;left:50%;transform:translateX(-50%);font-weight:bold;font-size:12px;color:var(--cyan);text-shadow:0 0 12px var(--cyan)}
+#mission{position:absolute;top:105px;left:50%;transform:translateX(-50%);font-size:10px;color:#d9caff;background:#100b25bb;border:1px solid #a66aff55;padding:7px 12px;border-radius:20px;white-space:nowrap}
+#pause{pointer-events:auto;position:absolute;right:12px;top:76px;width:42px;height:38px;padding:0;margin:0;background:#211737;border:1px solid #a66aff;border-radius:10px;font-size:17px}
+#controls{position:absolute;bottom:13px;width:100%;text-align:center;color:#d5c7ee;font-size:10px;letter-spacing:1px;text-shadow:0 2px 5px black}
+#overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(#08041688,#080416eF);padding:16px;text-align:center}
+.panel{width:min(440px,100%);max-height:94vh;overflow:auto;padding:25px 21px;border:1px solid #a66aff99;border-radius:23px;background:linear-gradient(145deg,#1b1032f5,#090716f7);box-shadow:0 0 55px #8e36ff44}
+.logo{font-size:clamp(32px,8vw,48px);font-weight:1000;letter-spacing:2px;line-height:1.05;text-shadow:0 0 13px var(--pink),0 0 30px #823cff}
+.logo span{color:var(--cyan)}
+.tag{font-size:10px;letter-spacing:5px;color:#bba7e6;margin:10px 0 20px}
+h2{font-size:21px;margin:5px 0 12px}
+p,.desc{font-size:13px;line-height:1.6;color:#c9bbdf}
+button{width:100%;border:0;border-radius:13px;padding:14px;margin:6px 0;background:linear-gradient(90deg,#ff35ca,#9255ff);color:white;font-weight:900;letter-spacing:1.5px;font-size:13px;cursor:pointer;box-shadow:0 0 18px #d33cff44}
+button.secondary{background:#211737;border:1px solid #8966c9;box-shadow:none}
+button:disabled{opacity:.4}
+.hidden{display:none!important}
+#result{font-size:14px;line-height:2;color:#e0d3f5;margin:16px 0}
+.missionCard{padding:11px;border:1px solid #7750aa;border-radius:12px;margin:8px 0;text-align:left;background:#120c25}
+.missionCard b{color:var(--cyan)}
+.small{font-size:10px;color:#a99abd}
+</style>
+</head>
+<body>
+<div id="game"></div>
+
+<div id="hud">
+ <div class="top">
+  <div class="stat"><small>DISTANCE</small><strong id="distance">0</strong></div>
+  <div class="stat"><small>SHARDS</small><strong id="shards">0</strong></div>
+  <div class="stat"><small>BEST</small><strong id="best">0</strong></div>
+ </div>
+ <div id="power"></div>
+ <div id="mission"></div>
+ <button id="pause">Ⅱ</button>
+ <div id="controls">SWIPE ← → TO MOVE &nbsp; • &nbsp; ↑ JUMP &nbsp; • &nbsp; ↓ SLIDE</div>
+</div>
+
+<div id="overlay">
+ <div class="panel" id="menu">
+  <div class="logo">RIFT <span>RUNNER</span></div>
+  <div class="tag">NEON DRIFT</div>
+  <h2>THE CITY IS YOURS TO CONQUER</h2>
+  <p>Run through a futuristic world, dodge deadly traps, collect energy and push your limits.</p>
+  <button id="start">START RUN</button>
+  <button class="secondary" id="missionsBtn">MISSIONS & RECORDS</button>
+  <button class="secondary" id="how">HOW TO PLAY</button>
+  <div class="small">VERSION 2.0 • NEON CITY</div>
+ </div>
+ <div class="panel hidden" id="help">
+  <h2>HOW TO PLAY</h2>
+  <p>Swipe left or right to switch lanes.</p>
+  <p>Swipe up to jump over barriers and drones.</p>
+  <p>Swipe down to slide beneath laser gates.</p>
+  <p>Collect cyan shards and glowing power orbs.</p>
+  <button id="back">BACK</button>
+ </div>
+ <div class="panel hidden" id="missionsPanel">
+  <h2>MISSIONS & RECORDS</h2>
+  <div id="missionCards"></div>
+  <div id="recordInfo" class="desc"></div>
+  <button id="missionsBack">BACK</button>
+ </div>
+ <div class="panel hidden" id="pausePanel">
+  <h2>GAME PAUSED</h2>
+  <p>Catch your breath, runner.</p>
+  <button id="resume">RESUME</button>
+  <button class="secondary" id="quit">MAIN MENU</button>
+ </div>
+ <div class="panel hidden" id="over">
+  <div class="logo">RUN <span>OVER</span></div>
+  <div id="result"></div>
+  <button id="again">RUN AGAIN</button>
+  <button class="secondary" id="home">MAIN MENU</button>
+ </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+<script>
+(()=>{
+"use strict";
+const $=id=>document.getElementById(id);
+if(!window.THREE){$("menu").innerHTML="<h2>Unable to load 3D engine</h2><p>Check your internet connection and reload.</p>";return;}
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x070313);
+scene.fog=new THREE.FogExp2(0x090419,.012);
+const camera=new THREE.PerspectiveCamera(66,innerWidth/innerHeight,.1,220);
+camera.position.set(0,5.1,10.5);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+game.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xaaa0ff,0x140820,1.6));
+const sun=new THREE.DirectionalLight(0xb8a3ff,2);
+sun.position.set(-5,12,8);scene.add(sun);
+const pinkLight=new THREE.PointLight(0xff22c8,18,45);
+pinkLight.position.set(-6,5,-10);scene.add(pinkLight);
+const cyanLight=new THREE.PointLight(0x20dfff,18,45);
+cyanLight.position.set(6,5,-16);scene.add(cyanLight);
+
+const material=(c,e=0,i=0,m=.25)=>{
+ return new THREE.MeshStandardMaterial({color:c,emissive:e,emissiveIntensity:i,roughness:.38,metalness:m});
+};
+const cyan=material(0x39efff,0x16dfff,2.5);
+const pink=material(0xff35ca,0xff16bc,2.5);
+const violet=material(0x9855ff,0x792aff,2);
+const dark=material(0x111027,0x26114c,.7);
+const floorMat=material(0x111020);
+const lanes=[-2.35,0,2.35];
+
+function cube(parent,w,h,d,mat,x=0,y=0,z=0){
+ const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+ o.position.set(x,y,z);parent.add(o);return o;
+}
+function ball(parent,r,mat,x=0,y=0,z=0){
+ const o=new THREE.Mesh(new THREE.SphereGeometry(r,14,12),mat);
+ o.position.set(x,y,z);parent.add(o);return o;
+}
+function tube(parent,r1,r2,h,mat,x=0,y=0,z=0){
+ const o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,12),mat);
+ o.position.set(x,y,z);parent.add(o);return o;
+}
+function glowRing(parent,r,t,mat,x,y,z){
+ const o=new THREE.Mesh(new THREE.TorusGeometry(r,t,10,40),mat);
+ o.position.set(x,y,z);parent.add(o);return o;
+}
+
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(17,200),floorMat);
+floor.rotation.x=-Math.PI/2;floor.position.set(0,-.15,-75);scene.add(floor);
+for(const x of [-4.2,4.2]){
+ cube(scene,.14,.22,200,violet,x,0,-75);
+ cube(scene,.035,.04,200,cyan,x*.88,-.03,-75);
+}
+const roadDashes=[];
+for(let z=8;z>-170;z-=7){
+ const d=cube(scene,.055,.025,3.2,pink,0,-.04,z);
+ roadDashes.push(d);
+}
+for(const x of [-3.55,-1.18,1.18,3.55]){
+ cube(scene,.035,.025,200,cyan,x,-.04,-75);
+}
+
+// Futuristic city buildings
+const buildings=[];
+const buildingMaterials=[
+ material(0x17102e,0x391b78,.65),
+ material(0x111c36,0x123d7b,.65),
+ material(0x25102f,0x70155c,.6),
+ material(0x11172a,0x1c5370,.6)
+];
+for(const side of [-1,1]){
+ for(let i=0;i<34;i++){
+  const w=2+Math.random()*2.7,h=6+Math.random()*20;
+  const g=new THREE.Group();
+  cube(g,w,h,w,buildingMaterials[Math.floor(Math.random()*4)],0,h/2,0);
+  for(let y=1.4;y<h-1;y+=2.1){
+   cube(g,w+.025,.055,.045,Math.random()>.5?cyan:pink,0,y,w/2+.025);
+   for(let x=-w/2+.35;x<w/2;x+=.65){
+    if(Math.random()>.3)cube(g,.12,.35,.04,material(0x9a8dff,0x5a4cff,1),x,y+.55,w/2+.04);
+   }
+  }
+  const roof=cube(g,w*.65,.12,w*.65,violet,0,h+.08,0);
+  roof.rotation.y=.2;
+  g.position.set(side*(6+Math.random()*4),0,-i*8-10);
+  scene.add(g);buildings.push(g);
+ }
+}
+
+// Decorative portals and overhead structures
+const arches=[];
+for(let z=-15;z>-180;z-=34){
+ const g=new THREE.Group();
+ cube(g,.16,5.5,.25,cyan,-4,2.75,0);
+ cube(g,.16,5.5,.25,pink,4,2.75,0);
+ cube(g,8,.16,.25,violet,0,5.5,0);
+ const ring=glowRing(g,2.5,.075,pink,0,2.8,0);
+ ring.scale.y=.9;
+ g.position.z=z;scene.add(g);arches.push(g);
+}
+
+// Stars
+const stars=new THREE.Group();
+for(let i=0;i<280;i++){
+ const s=ball(stars,.035,i%2?cyan:pink,(Math.random()-.5)*100,Math.random()*35+3,-Math.random()*180);
+}
+scene.add(stars);
+
+// Player: detailed futuristic runner
+const runner=new THREE.Group();scene.add(runner);runner.position.set(0,0,3);
+const armor=material(0x29164b,0x6f24c9,1.3,.7);
+const armorLight=material(0x503080,0x9b4aff,1.6,.65);
+const black=material(0x101225,0x26285a,.8,.7);
+const visorMat=material(0x172d4c,0x28dfff,2,.8);
+const silver=material(0xa8c4df,0x284f83,.6,.8);
+const skin=material(0xd99b91);
+const limbGroups=[];
+const legs=[];
+const arms=[];
+
+// torso and waist
+const torso=cube(runner,.76,.94,.43,armor,0,1.38,0);
+torso.rotation.x=-.08;
+cube(runner,.48,.23,.47,black,0,.86,0);
+cube(runner,.52,.17,.055,cyan,0,1.43,-.245);
+cube(runner,.14,.5,.045,pink,0,1.45,-.27);
+cube(runner,.18,.13,.48,silver,0,.91,0);
+
+// chest armor plates
+for(const s of [-1,1]){
+ const plate=cube(runner,.27,.39,.12,armorLight,s*.22,1.57,-.23);
+ plate.rotation.z=s*-.12;
+ cube(runner,.09,.33,.07,cyan,s*.23,1.56,-.31);
+ // shoulder armour
+ const shoulder=ball(runner,.22,armorLight,s*.49,1.77,0);
+ const shoulderGlow=cube(runner,.26,.07,.25,pink,s*.49,1.79,-.12);
+ // backpack
+ cube(runner,.19,.65,.35,black,s*.29,1.34,.31);
+ tube(runner,.09,.13,.5,cyan,s*.29,1.34,.51);
+}
+
+// helmet
+const head=new THREE.Group();head.position.set(0,2.2,0);runner.add(head);
+ball(head,.34,black,0,0,0);
+ball(head,.285,armorLight,0,.02,-.035);
+const visor=cube(head,.48,.2,.11,visorMat,0,.025,-.27);
+visor.rotation.x=-.08;
+cube(head,.36,.035,.025,cyan,0,-.09,-.31);
+for(const s of [-1,1]){
+ cube(head,.09,.24,.16,pink,s*.32,0,0);
+ tube(head,.07,.07,.13,cyan,s*.34,0,0);
+}
+// helmet crest
+cube(head,.12,.28,.16,cyan,0,.31,.01).rotation.x=.3;
+const antenna=tube(head,.025,.04,.23,pink,0,.47,.05);
+
+// arms with shoulder, upper arm, forearm and gloves
+for(const s of [-1,1]){
+ const arm=new THREE.Group();arm.position.set(s*.49,1.72,0);runner.add(arm);
+ ball(arm,.19,armorLight,0,0,0);
+ const upper=cube(arm,.22,.38,.24,armor,0,-.24,0);
+ const elbow=ball(arm,.12,silver,0,-.46,0);
+ const fore=cube(arm,.19,.34,.2,black,0,-.64,-.015);
+ cube(arm,.2,.08,.21,cyan,0,-.58,-.13);
+ ball(arm,.12,armorLight,0,-.84,-.02);
+ arms.push(arm);
+}
+// legs with thigh, knee, shin and boot
+for(const s of [-1,1]){
+ const leg=new THREE.Group();leg.position.set(s*.22,.84,0);runner.add(leg);
+ cube(leg,.28,.4,.29,armor,0,-.2,0);
+ ball(leg,.14,silver,0,-.43,0);
+ cube(leg,.23,.42,.24,black,0,-.65,0);
+ cube(leg,.25,.09,.26,pink,0,-.58,-.14);
+ cube(leg,.32,.17,.48,armorLight,0,-.92,-.09);
+ cube(leg,.26,.045,.42,cyan,0,-.99,-.13);
+ legs.push(leg);
+}
+// back energy core and light
+const core=ball(runner,.19,cyan,0,1.3,.48);
+const aura=new THREE.PointLight(0x853aff,4,5);aura.position.set(0,1.5,0);runner.add(aura);
+const shieldVisual=new THREE.Mesh(new THREE.SphereGeometry(1.35,18,14),new THREE.MeshBasicMaterial({color:0x39efff,wireframe:true,transparent:true,opacity:.22}));
+shieldVisual.position.y=1.2;shieldVisual.visible=false;runner.add(shieldVisual);
+
+let running=false,paused=false,dead=false;
+let lane=1,targetX=0,jump=0,slide=0;
+let distance=0,shards=0,best=Number(localStorage.getItem("riftBest")||0);
+let speed=18,elapsed=0,spawnTimer=1,lootTimer=1;
+let shield=0,magnet=0,boost=0;
+let obstacles=[],items=[],particles=[];
+let audio=null,musicTimer=null,musicStep=0;
+let missionClaimed=false;
+const missions=[
+ {name:"FIRST FLIGHT",desc:"Travel 500 metres",goal:500,unit:"m"},
+ {name:"SHARD HUNTER",desc:"Collect 25 energy shards",goal:25,unit:"shards"},
+ {name:"LONG DISTANCE",desc:"Travel 1500 metres",goal:1500,unit:"m"}
+];
+$("best").textContent=best;
+
+function sound(freq=440,dur=.12,type="sine",vol=.06){
+ if(!audio)return;
+ try{
+  const o=audio.createOscillator(),g=audio.createGain();
+  o.type=type;o.frequency.value=freq;
+  g.gain.setValueAtTime(vol,audio.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+dur);
+  o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+dur);
+ }catch(e){}
+}
+function initAudio(){
+ try{
+  if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();
+  if(audio.state==="suspended")audio.resume();
+  if(!musicTimer){
+   musicTimer=setInterval(()=>{
+    if(!running||paused||!audio)return;
+    const n=[110,164.8,220,164.8,130.8,196,261.6,196];
+    sound(n[musicStep++%n.length],.16,"triangle",.025);
+   },310);
+  }
+ }catch(e){}
+}
+
+function makeObstacle(type,l,z){
+ const g=new THREE.Group();
+ if(type==="block"){
+  cube(g,1.35,1.4,1.1,material(0x25143d,0x6517a0,1.5),0,.7,0);
+  cube(g,1.4,.1,1.12,pink,0,1.42,0);
+  for(let x=-1;x<=1;x++)cube(g,.07,.9,.04,cyan,x*.4,.72,-.56);
+  cube(g,.35,.14,.05,silver,0,.75,-.6);
+ }else if(type==="laser"){
+  cube(g,1.9,.13,.14,pink,0,1.65,0);
+  cube(g,.14,1.7,.18,black,-.87,.85,0);
+  cube(g,.14,1.7,.18,black,.87,.85,0);
+  cube(g,1.95,.08,.16,cyan,0,.12,0);
+ }else if(type==="drone"){
+  ball(g,.43,armorLight,0,1.55,0);
+  ball(g,.18,cyan,0,1.55,-.4);
+  cube(g,1.5,.08,.2,pink,0,1.55,0);
+  for(const s of [-1,1]){
+   ball(g,.13,cyan,s*.8,1.55,0);
+   cube(g,.08,.25,.08,silver,s*.3,1.15,0);
+  }
+ }else if(type==="gate"){
+  cube(g,1.7,.14,.18,pink,0,.65,0);
+  cube(g,.14,1.4,.2,black,-.85,.7,0);
+  cube(g,.14,1.4,.2,black,.85,.7,0);
+ }else{
+  cube(g,1.5,.25,.9,material(0x26345b,0x1d9bff,1),0,.25,0);
+  cube(g,.16,.3,.94,cyan,0,.4,0);
+ }
+ g.position.set(lanes[l],0,z);scene.add(g);
+ obstacles.push({g,type,l,z});
+}
+function makeItem(type,l,z){
+ const g=new THREE.Group();
+ if(type==="shard"){
+  const gem=new THREE.Mesh(new THREE.OctahedronGeometry(.34),cyan);
+  gem.rotation.z=.5;g.add(gem);
+  glowRing(g,.45,.025,cyan,0,0,0);
+ }else{
+  ball(g,.35,violet,0,0,0);
+  glowRing(g,.52,.055,pink,0,0,0);
+  glowRing(g,.38,.035,cyan,0,0,0).rotation.x=1;
+ }
+ g.position.set(lanes[l],type==="shard"?1.3:1.4,z);
+ scene.add(g);items.push({g,type,l,z});
+}
+function spawnObstacle(){
+ const r=Math.random(),l=Math.floor(Math.random()*3);
+ const type=r<.35?"block":r<.57?"laser":r<.75?"drone":r<.9?"gate":"barrier";
+ makeObstacle(type,l,-105);
+}
+function spawnLoot(){
+ const l=Math.floor(Math.random()*3);
+ makeItem(Math.random()<.84?"shard":"power",l,-100);
+ if(Math.random()<.75){
+  for(let i=1;i<5;i++)makeItem("shard",l,-100-i*3);
+ }
+}
+function burst(x,y,z,color){
+ for(let i=0;i<9;i++){
+  const m=ball(scene,.065,material(color,color,2),x,y,z);
+  particles.push({m,life:.6,v:new THREE.Vector3((Math.random()-.5)*5,Math.random()*4,(Math.random()-.5)*3)});
+ }
+}
+function removeGroup(g){scene.remove(g);}
+function clearObjects(){
+ obstacles.forEach(o=>removeGroup(o.g));
+ items.forEach(o=>removeGroup(o.g));
+ particles.forEach(o=>removeGroup(o.m));
+ obstacles=[];items=[];particles=[];
+}
+function updateMission(){
+ const done=distance>=500||shards>=25||distance>=1500;
+ $("mission").textContent=shards>=25?"MISSION: SHARD HUNTER "+shards+"/25":
+ distance>=1500?"MISSION: LONG DISTANCE":
+ "MISSION: FIRST FLIGHT "+Math.min(500,Math.floor(distance))+"/500";
+}
+function reset(){
+ clearObjects();
+ distance=0;shards=0;elapsed=0;speed=18;
+ spawnTimer=.8;lootTimer=1;
+ lane=1;targetX=0;jump=0;slide=0;
+ shield=0;magnet=0;boost=0;
+ runner.position.set(0,0,3);runner.scale.set(1,1,1);
+ runner.rotation.set(0,0,0);
+ $("distance").textContent="0";$("shards").textContent="0";$("power").textContent="";
+ shieldVisual.visible=false;
+}
+function panels(id){
+ ["menu","help","missionsPanel","pausePanel","over"].forEach(x=>$(x).classList.add("hidden"));
+ $(id).classList.remove("hidden");
+}
+function start(){
+ initAudio();reset();running=true;paused=false;dead=false;
+ $("overlay").classList.add("hidden");$("hud").style.display="block";
+}
+function finish(){
+ if(dead)return;
+ dead=true;running=false;
+ sound(85,.4,"sawtooth",.12);
+ const score=Math.floor(distance),old=best;
+ best=Math.max(best,score);
+ localStorage.setItem("riftBest",best);
+ $("best").textContent=best;
+ $("result").innerHTML="DISTANCE: <b>"+score+" m</b><br>SHARDS: <b>"+shards+"</b><br>BEST: <b>"+best+" m</b>"+(score>old?"<br><span style='color:#39efff'>✦ NEW RECORD! ✦</span>":"");
+ $("hud").style.display="none";$("overlay").classList.remove("hidden");panels("over");
+}
+function move(d){
+ if(!running||paused)return;
+ lane=Math.max(0,Math.min(2,lane+d));targetX=lanes[lane];
+}
+function doJump(){
+ if(!running||paused||jump>0||slide>0)return;
+ jump=.001;sound(330,.18,"triangle");
+}
+function doSlide(){
+ if(!running||paused||slide>0||jump>0)return;
+ slide=.72;
+}
+function swipe(dx,dy){
+ if(Math.max(Math.abs(dx),Math.abs(dy))<22)return;
+ if(Math.abs(dx)>Math.abs(dy))move(dx>0?1:-1);
+ else if(dy<0)doJump();else doSlide();
+}
+let sx=0,sy=0;
+renderer.domElement.addEventListener("touchstart",e=>{
+ sx=e.changedTouches[0].clientX;sy=e.changedTouches[0].clientY;
+},{passive:true});
+renderer.domElement.addEventListener("touchend",e=>{
+ swipe(e.changedTouches[0].clientX-sx,e.changedTouches[0].clientY-sy);
+},{passive:true});
+window.addEventListener("keydown",e=>{
+ if(e.key==="ArrowLeft"||e.key==="a")move(-1);
+ if(e.key==="ArrowRight"||e.key==="d")move(1);
+ if(e.key==="ArrowUp"||e.key==="w"||e.key===" ")doJump();
+ if(e.key==="ArrowDown"||e.key==="s")doSlide();
+ if(e.key==="Escape"&&running)togglePause();
+});
+function togglePause(){
+ if(!running)return;
+ paused=!paused;
+ if(paused){$("overlay").classList.remove("hidden");panels("pausePanel");}
+ else $("overlay").classList.add("hidden");
+}
+$("start").onclick=start;
+$("again").onclick=start;
+$("how").onclick=()=>panels("help");
+$("back").onclick=()=>panels("menu");
+$("missionsBack").onclick=()=>panels("menu");
+$("missionsBtn").onclick=()=>{
+ const dist=Math.floor(distance);
+ $("missionCards").innerHTML=missions.map((m,i)=>{
+  const value=i===0?Math.min(500,best):i===1?Math.min(25,Number(localStorage.getItem("riftTotalShards")||0)):Math.min(1500,best);
+  return '<div class="missionCard"><b>'+m.name+'</b><br>'+m.desc+'<br><span class="small">BEST PROGRESS: '+value+'/'+m.goal+'</span></div>';
+ }).join("");
+ $("recordInfo").textContent="PERSONAL BEST: "+best+" metres";
+ panels("missionsPanel");
+};
+$("pause").onclick=togglePause;
+$("resume").onclick=togglePause;
+$("quit").onclick=()=>{
+ running=false;paused=false;$("hud").style.display="none";$("overlay").classList.remove("hidden");panels("menu");
+};
+$("home").onclick=()=>{
+ running=false;$("hud").style.display="none";$("overlay").classList.remove("hidden");panels("menu");
+};
+
+function update(dt){
+ if(!running||paused)return;
+ elapsed+=dt;
+ speed=Math.min(38,18+elapsed*.22);
+ const velocity=speed*(boost>0?1.5:1);
+ distance+=velocity*dt*.75;
+ $("distance").textContent=Math.floor(distance);
+ $("shards").textContent=shards;
+ spawnTimer-=dt;lootTimer-=dt;
+ if(spawnTimer<=0){spawnObstacle();spawnTimer=Math.max(.55,1.35-elapsed*.004)+Math.random()*.4;}
+ if(lootTimer<=0){spawnLoot();lootTimer=1.5+Math.random();}
+ updateMission();
+
+ targetX=lanes[lane];
+ runner.position.x+=(targetX-runner.position.x)*Math.min(1,dt*13);
+ if(jump>0){
+  jump+=dt;
+  runner.position.y=Math.sin(Math.min(1,jump/.82)*Math.PI)*2;
+  if(jump>=.82){jump=0;runner.position.y=0;}
+ }
+ if(slide>0){
+  slide-=dt;runner.scale.y=.56;runner.position.y=-.3;
+ }else{
+  runner.scale.y=1;if(jump<=0)runner.position.y=0;
+ }
+ const phase=elapsed*13;
+ legs[0].rotation.x=Math.sin(phase)*.85;
+ legs[1].rotation.x=-Math.sin(phase)*.85;
+ arms[0].rotation.x=-Math.sin(phase)*.65;
+ arms[1].rotation.x=Math.sin(phase)*.65;
+ torso.rotation.z=Math.sin(phase)*.035;
+ head.rotation.y=Math.sin(phase*.5)*.045;
+ core.scale.setScalar(1+Math.sin(elapsed*8)*.1);
+ runner.rotation.z=(targetX-runner.position.x)*-.09;
+ runner.position.z=3;
+
+ if(boost>0)boost-=dt;
+ if(shield>0)shield-=dt;
+ if(magnet>0)magnet-=dt;
+ shieldVisual.visible=shield>0;
+ $("power").textContent=shield>0?"✦ SHIELD ACTIVE":magnet>0?"✦ SHARD MAGNET":boost>0?"✦ SPEED BOOST":"";
+
+ for(let i=obstacles.length-1;i>=0;i--){
+  const o=obstacles[i];o.z+=velocity*dt;o.g.position.z=o.z;
+  if(o.type==="drone")o.g.position.y=Math.sin(elapsed*5+o.z)*.16;
+  if(Math.abs(o.z-3)<1.15&&Math.abs(runner.position.x-lanes[o.l])<.95){
+   const safe=o.type==="laser"||o.type==="gate"?slide>0:
+    o.type==="drone"?jump>0||slide>0:jump>0||slide>0;
+   if(!safe){
+    if(shield>0){
+     shield=0;burst(runner.position.x,1,3,0x39efff);
+     removeGroup(o.g);obstacles.splice(i,1);continue;
+    }
+    finish();return;
+   }
+  }
+  if(o.z>13){removeGroup(o.g);obstacles.splice(i,1);}
+ }
+ for(let i=items.length-1;i>=0;i--){
+  const it=items[i];it.z+=velocity*dt;it.g.position.z=it.z;
+  it.g.rotation.y+=dt*2.5;
+  it.g.position.y=(it.type==="shard"?1.3:1.4)+Math.sin(elapsed*4+i)*.12;
+  if(magnet>0&&it.type==="shard"&&Math.abs(it.z-3)<14){
+   it.g.position.x+=(runner.position.x-it.g.position.x)*Math.min(1,dt*4);
+  }
+  if(Math.abs(it.z-3)<1.2&&Math.abs(it.g.position.x-runner.position.x)<1.1){
+   if(it.type==="shard"){
+    shards++;sound(850,.1,"sine",.07);
+    localStorage.setItem("riftTotalShards",Number(localStorage.getItem("riftTotalShards")||0)+1);
+   }else{
+    const p=["shield","magnet","boost"][Math.floor(Math.random()*3)];
+    if(p==="shield")shield=8;
+    if(p==="magnet")magnet=9;
+    if(p==="boost")boost=6;
+    sound(650,.25,"triangle",.09);
+   }
+   burst(it.g.position.x,it.g.position.y,it.z,it.type==="shard"?0x39efff:0xff35ca);
+   removeGroup(it.g);items.splice(i,1);continue;
+  }
+  if(it.z>13){removeGroup(it.g);items.splice(i,1);}
+ }
+ for(let i=particles.length-1;i>=0;i--){
+  const p=particles[i];p.life-=dt;
+  p.m.position.addScaledVector(p.v,dt);p.v.y-=8*dt;
+  if(p.life<=0){removeGroup(p.m);particles.splice(i,1);}
+ }
+ for(const d of roadDashes){d.position.z+=velocity*dt;if(d.position.z>12)d.position.z-=180;}
+ for(const b of buildings){b.position.z+=velocity*dt*.8;if(b.position.z>20)b.position.z-=280;}
+ for(const a of arches){a.position.z+=velocity*dt;if(a.position.z>18)a.position.z-=190;}
+ for(const s of stars.children){s.position.z+=velocity*dt*.45;if(s.position.z>15)s.position.z-=190;}
+}
+let last=performance.now();
+function animate(now){
+ requestAnimationFrame(animate);
+ const dt=Math.min((now-last)/1000,.04);last=now;
+ update(dt);
+ const t=now*.001;
+ pinkLight.intensity=16+Math.sin(t*2)*4;
+ cyanLight.intensity=16+Math.cos(t*1.7)*4;
+ if(!running){
+  runner.position.y=Math.sin(t*2)*.05;
+  runner.rotation.y=Math.sin(t*.8)*.08;
+ }
+ camera.position.x+=(runner.position.x*.13-camera.position.x)*.025;
+ camera.lookAt(runner.position.x*.1,1,-5);
+ renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+window.addEventListener("resize",()=>{
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
+});
+})();
+</script>
+</body>
+</html>
+
 
 
