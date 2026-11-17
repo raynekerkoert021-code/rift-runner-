@@ -496,20 +496,28 @@ function endGame(){
   if(dead)return;
   dead=true;
   running=false;
+
   const finalScore=Math.floor(score);
+
   if(finalScore>bestScore){
     bestScore=finalScore;
     localStorage.rrBestScore=bestScore;
   }
+
   if(distance>best){
     best=Math.floor(distance);
     localStorage.rrBest=best;
   }
+
+  $('finalDistance').textContent=Math.floor(distance)+' m';
   $('finalScore').textContent=finalScore;
   $('finalShards').textContent=shards;
-  $('gameOver').classList.add('show');
+  $('bestStart').textContent=best+' m';
+  $('bestScoreStart').textContent=bestScore;
+
+  $('overOverlay').style.display='flex';
   $('pauseBtn').textContent='Ⅱ';
-  sfx(100,0.45,'sawtooth');
+  sfx('hit');
 }
 
 function update(dt){
