@@ -1,469 +1,721 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>RIFT RUNNER: NEON DRIFT</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#090516"><title>RIFT RUNNER: NEON DRIFT</title>
 <style>
-*{box-sizing:border-box}
-html,body{
- margin:0;width:100%;height:100%;overflow:hidden;
- background:#070816;color:white;
- font-family:system-ui,Arial,sans-serif;
- touch-action:none
-}
-body{
- display:flex;align-items:center;justify-content:center;
- background:radial-gradient(ellipse at 50% 0%,#24134b,#09091b 55%,#03040b)
-}
-#shell{
- position:relative;width:min(100vw,480px);
- height:min(100dvh,850px);min-height:500px;
- display:flex;flex-direction:column;padding:12px;gap:8px
-}
-header{display:flex;justify-content:space-between;align-items:center}
-.brand{
- font-weight:1000;letter-spacing:2px;font-size:23px;
- color:white;text-shadow:0 0 14px #ff4fd8
-}
-.brand small{
- display:block;font-size:9px;letter-spacing:4px;
- color:#56f4ff
-}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.stat{
- background:#11132c;border:1px solid #6244a9;
- border-radius:12px;padding:7px;text-align:center
-}
-.stat span{display:block;color:#aaa;font-size:9px}
-.stat b{font-size:17px}
-#gameWrap{
- position:relative;flex:1;min-height:0;
- border:1px solid #8b58ff;border-radius:18px;
- overflow:hidden;box-shadow:0 0 25px #8c39ff55;
- background:#08091d
-}
-canvas{width:100%;height:100%;display:block;touch-action:none}
-#overlay{
- position:absolute;inset:0;display:flex;
- flex-direction:column;align-items:center;
- justify-content:center;text-align:center;padding:28px;
- background:#08091de8
-}
-#overlay.hidden{display:none}
-#overlay h1{
- font-size:36px;line-height:1;margin:0 0 10px;
- text-shadow:0 0 20px #ff4fd8
-}
-#overlay p{color:#d5d0f5;line-height:1.5;font-size:13px}
-button{
- border:0;border-radius:13px;padding:13px 20px;
- color:white;font-weight:900;letter-spacing:1px;
- background:linear-gradient(110deg,#8d3dff,#ed42c9);
- font-size:13px
-}
-#controls{display:flex;justify-content:space-between;gap:8px}
-#controls button{flex:1}
-#phaseBtn{background:linear-gradient(110deg,#087eaa,#6545e8)}
-#pauseBtn{flex:0 0 54px;background:#202346}
-.hint{text-align:center;color:#aaa8d2;font-size:10px}
-#toast{
- position:absolute;top:12px;left:50%;
- transform:translateX(-50%);
- background:#11132d;border:1px solid #56f4ff;
- border-radius:20px;padding:7px 13px;
- font-size:11px;font-weight:900;opacity:0;
- pointer-events:none
-}
-#toast.show{opacity:1}
+:root{--pink:#ff4fd8;--cyan:#4df7ff;--violet:#9a63ff}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080412;color:#fff;font-family:Inter,system-ui,Arial,sans-serif;touch-action:none}
+#game{position:fixed;inset:0}canvas{display:block;width:100%;height:100%}
+#hud{position:absolute;inset:0;pointer-events:none;display:none}
+.top{position:absolute;top:max(14px,env(safe-area-inset-top));left:14px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.pill{background:#100c25c9;border:1px solid #ffffff26;border-radius:15px;padding:9px 13px;backdrop-filter:blur(10px);box-shadow:0 0 18px #a34dff22}
+.small{font-size:10px;letter-spacing:2px;color:#b9a9d8}.num{font-size:22px;font-weight:900;letter-spacing:1px}
+#rightHud{display:flex;gap:7px;align-items:flex-start}button{font:inherit;color:white;border:1px solid #ffffff35;background:linear-gradient(135deg,#9b42d9,#5421a6);border-radius:14px;padding:12px 18px;font-weight:800;letter-spacing:1px;box-shadow:0 5px 20px #9b42d955}
+button:active{transform:scale(.97)}.iconBtn{padding:10px 12px;background:#17102d}
+#centerToast{position:absolute;top:25%;width:100%;text-align:center;font-weight:900;font-size:clamp(18px,5vw,32px);letter-spacing:5px;color:var(--cyan);text-shadow:0 0 18px var(--cyan);opacity:0;transition:opacity .25s}
+#controlsHint{position:absolute;bottom:20px;width:100%;text-align:center;color:#d9c9f5a8;font-size:11px;letter-spacing:2px}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:22px;background:radial-gradient(ellipse at 50% 45%,#24104477,#07030de8 75%);text-align:center}
+.panel{width:min(460px,100%);padding:28px 22px;border:1px solid #ffffff26;border-radius:28px;background:linear-gradient(160deg,#1b1034ed,#0a0719f2);box-shadow:0 0 60px #9c45ff33, inset 0 0 35px #ffffff08}
+.logo{font-size:clamp(32px,9vw,56px);line-height:.95;font-weight:1000;letter-spacing:-2px;text-shadow:0 0 14px #ff43db,0 0 34px #824aff}
+.logo span{color:var(--cyan)}.tag{color:#c8b6e7;letter-spacing:3px;font-size:10px;margin:13px 0 22px}
+.sub{color:#cfc2e6;font-size:13px;line-height:1.6;margin:12px 0 20px}
+.actions{display:grid;gap:10px}.primary{font-size:14px;padding:16px}.secondary{background:#17102d;border-color:#ffffff30}
+.statline{display:flex;justify-content:space-around;margin:18px 0;color:#bca9dc;font-size:11px;letter-spacing:1px}.statline b{display:block;color:white;font-size:20px;margin-top:4px}
+#pauseOverlay,#overOverlay{display:none}
+#mobileHint{font-size:10px;color:#a99abe;margin-top:14px}
+#loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#080412;letter-spacing:3px;color:#bfa8ed;font-size:12px}
+@media(min-width:700px){.panel{padding:36px}.top{left:28px;right:28px}}
 </style>
 </head>
 <body>
-<div id="shell">
-<header>
- <div class="brand">RIFT RUNNER
-  <small>NEON DRIFT · ENTER THE UNKNOWN</small>
+<div id="game"></div><div id="loading">BUILDING THE RIFT…</div>
+<div id="hud">
+ <div class="top">
+  <div class="pill"><div class="small">DISTANCE</div><div class="num" id="distance">0 m</div></div>
+    <div id="rightHud">
+   <div class="pill"><div class="small">SCORE</div><div class="num" id="score">0</div></div>
+   <div class="pill"><div class="small">SHARDS</div><div class="num" id="shards">0</div></div>
+   <button class="iconBtn" id="pauseBtn">Ⅱ</button>
+   <button class="iconBtn" id="soundBtn">♫</button>
+  </div>
  </div>
- <div style="font-size:11px;color:#bcb5ef">
-  VYRQELUNE<br>STUDIOS
+ <div id="centerToast">RIFT SHIFT</div>
+ <div id="controlsHint">SWIPE LEFT / RIGHT TO MOVE • UP TO JUMP • DOWN TO SLIDE</div>
+</div>
+
+<div class="overlay" id="startOverlay"><div class="panel">
+ <div class="logo">RIFT <span>RUNNER</span></div>
+ <div class="tag">NEON DRIFT · BEYOND THE ORDINARY</div>
+ <div class="sub">Race through a fractured neon city. Dodge barriers, collect energy shards and survive as the rift gets faster.</div>
+ <div class="actions">
+  <button class="primary" id="startBtn">▶ START RUN</button>
+  <button class="secondary" id="howBtn">HOW TO PLAY</button>
  </div>
-</header>
-
-<div class="stats">
- <div class="stat"><span>SCORE</span><b id="score">0</b></div>
- <div class="stat"><span>BEST</span><b id="best">0</b></div>
- <div class="stat"><span>ENERGY</span><b id="energy">0</b></div>
-</div>
-
-<div id="gameWrap">
- <canvas id="game" width="480" height="700"></canvas>
- <div id="toast"></div>
- <div id="overlay">
-  <h1>RIFT RUNNER</h1>
-  <p>Race through the fractured neon city. Dodge hazards, collect energy and survive the rift.</p>
-  <p>
-   SWIPE LEFT / RIGHT to change lanes<br>
-   SWIPE UP to jump<br>
-   Tap RIFT SHIFT to phase through danger
-  </p>
-  <button id="startBtn">START RUN</button>
+ <div class="statline">
+  <div>BEST DISTANCE<b id="bestStart">0 m</b></div>
+  <div>BEST SCORE<b id="bestScoreStart">0</b></div>
  </div>
-</div>
+ <div id="mobileHint">Made for touch screens · Sound starts after Start</div>
+</div></div>
 
-<div id="controls">
- <button id="phaseBtn">⚡ RIFT SHIFT · 5</button>
- <button id="pauseBtn">Ⅱ</button>
-</div>
-<div class="hint">
- SWIPE LEFT / RIGHT TO STEER · SWIPE UP TO JUMP
-</div>
-</div>
+<div class="overlay" id="pauseOverlay"><div class="panel">
+ <div class="logo">RUN <span>PAUSED</span></div>
+ <div class="sub">Catch your breath. The rift is waiting.</div>
+ <div class="actions">
+  <button class="primary" id="resumeBtn">RESUME</button>
+  <button class="secondary" id="restartPause">RESTART RUN</button>
+ </div>
+</div></div>
 
+<div class="overlay" id="overOverlay"><div class="panel">
+ <div class="logo">RIFT <span>ENDED</span></div>
+ <div class="sub">The city pulled you back in. Ready for another run?</div>
+ <div class="statline">
+  <div>DISTANCE<b id="finalDistance">0 m</b></div>
+  <div>SCORE<b id="finalScore">0</b></div>
+  <div>SHARDS<b id="finalShards">0</b></div>
+ </div>
+ <div class="actions">
+  <button class="primary" id="againBtn">↻ RUN AGAIN</button>
+  <button class="secondary" id="homeBtn">MAIN MENU</button>
+ </div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
-
-const canvas=document.getElementById('game');
-const ctx=canvas.getContext('2d');
+(()=>{
+'use strict';
 const $=id=>document.getElementById(id);
+const game=$('game');
+let scene,camera,renderer,clock,player,world=[],obstacles=[],pickups=[];
+let running=false,paused=false,dead=false,lane=0,targetLane=0;
+let jumpY=0,jumpV=0,slide=0;
+let distance=0,score=0,shards=0,speed=18;
+let spawnTimer=0,pickupTimer=0;
+let best=+(localStorage.rrBest||0);
+let bestScore=+(localStorage.rrBestScore||0);
+let audioCtx=null,master=null,musicOn=true,musicTimer=null;
+let toastTimer=0;
 
-let lane=1,playerX=240,score=0,energy=0;
-let best=+(localStorage.getItem('riftBest')||0);
-let objects=[],particles=[];
-let running=false,paused=false,frame=0;
-let speed=4.2,jumpT=0,phaseT=0,last=0,raf=0;
-const laneX=[150,240,330];
+const laneX=[-3.2,0,3.2];
+const ROAD=10;
 
-$('best').textContent=best;
-
-function hud(){
- $('score').textContent=score;
- $('best').textContent=best;
- $('energy').textContent=energy;
-}
-
-function toast(message){
- $('toast').textContent=message;
- $('toast').classList.add('show');
- setTimeout(()=>$('toast').classList.remove('show'),900);
-}
-
-function start(){
- lane=1;
- playerX=240;
- score=0;
- energy=0;
- objects=[];
- particles=[];
- frame=0;
- speed=4.2;
- jumpT=0;
- phaseT=0;
- running=true;
- paused=false;
- $('overlay').classList.add('hidden');
- $('pauseBtn').textContent='Ⅱ';
- hud();
- last=0;
- cancelAnimationFrame(raf);
- raf=requestAnimationFrame(loop);
-}
-
-function end(){
- running=false;
- $('overlay').classList.remove('hidden');
- $('overlay').innerHTML=`
- <h1>RIFT COLLISION</h1>
- <p>Run score: <b>${score}</b><br>
- Best score: <b>${best}</b><br>
- Energy collected: <b>${energy}</b></p>
- <p>Swipe smarter. Go further.</p>
- <button id="startBtn">RUN AGAIN</button>`;
- $('startBtn').onclick=start;
-}
-
-function steer(direction){
- if(!running||paused)return;
- lane=Math.max(0,Math.min(2,lane+direction));
-}
-
-function jump(){
- if(running&&!paused&&jumpT<=0){
-  jumpT=34;
-  toast('JUMP!');
- }
-}
-
-function phase(){
- if(!running||paused)return;
- if(energy<5){toast('NEED 5 ENERGY');return}
- if(phaseT>0)return;
- energy-=5;
- phaseT=100;
- hud();
- toast('RIFT SHIFT ACTIVATED');
-}
-
-function spawn(){
- let l=Math.floor(Math.random()*3);
- let type=Math.random()<.24?'orb':
-  (Math.random()<.25?'barrier':'block');
- objects.push({
-  lane:l,y:-40,type,
-  spin:Math.random()*6
+function mat(color,emissive=color,rough=.4,metal=.25){
+ return new THREE.MeshStandardMaterial({
+  color,emissive,emissiveIntensity:.75,
+  roughness:rough,metalness:metal
  });
 }
+function box(w,h,d,m,x=0,y=0,z=0){
+ let o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
+ o.position.set(x,y,z);
+ scene.add(o);
+ return o;
+}
+ function init(){
+ scene=new THREE.Scene();
+ scene.background=new THREE.Color(0x080414);
+ scene.fog=new THREE.Fog(0x080414,35,145);
 
-function addParticles(x,y,color,n=9){
- for(let i=0;i<n;i++){
-  particles.push({
-   x,y,
-   vx:(Math.random()-.5)*5,
-   vy:(Math.random()-.5)*5,
-   life:24,color
-  });
+ camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,220);
+ camera.position.set(0,6.2,11);
+ camera.lookAt(0,1,-10);
+
+ renderer=new THREE.WebGLRenderer({antialias:true});
+ renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));
+ renderer.setSize(innerWidth,innerHeight);
+ renderer.shadowMap.enabled=true;
+ renderer.toneMapping=THREE.ACESFilmicToneMapping;
+ renderer.toneMappingExposure=1.15;
+ game.appendChild(renderer.domElement);
+
+ scene.add(new THREE.HemisphereLight(0x9f8bff,0x160b2a,2));
+ const light=new THREE.DirectionalLight(0xffffff,2.2);
+ light.position.set(-5,12,8);
+ scene.add(light);
+
+ const pink=new THREE.PointLight(0xff38d5,35,38);
+ pink.position.set(-8,5,-14);
+ scene.add(pink);
+
+ const cyan=new THREE.PointLight(0x25dfff,35,38);
+ cyan.position.set(8,5,-25);
+ scene.add(cyan);
+
+ buildTrack();
+ buildCity();
+ buildPlayer();
+
+ clock=new THREE.Clock();
+ window.addEventListener('resize',resize);
+ $('loading').style.display='none';
+ $('bestStart').textContent=best+' m';
+ $('bestScoreStart').textContent=bestScore;
+ animate();
+}
+
+function buildTrack(){
+ let floor=box(ROAD,.25,230,mat(0x100b22,0x140b2c),0,-.18,-75);
+ floor.receiveShadow=true;
+
+ for(let x of [-1.6,1.6]){
+  let line=box(.045,.035,230,mat(0x5c2ba8,0x9c36ff),x,-.03,-75);
+  world.push({mesh:line,kind:'static'});
  }
-}
 
-function rounded(x,y,w,h,r){
- ctx.beginPath();
- ctx.roundRect(x,y,w,h,r);
- ctx.fill();
-}
+ for(let x of [-5.02,5.02]){
+  let rail=box(.12,.22,230,mat(0x2b174c,0x9a36ff),x,.05,-75);
+  world.push({mesh:rail,kind:'static'});
+ }
 
-function draw(){
- const w=480,h=700;
- let g=ctx.createLinearGradient(0,0,0,h);
- g.addColorStop(0,'#08091e');
- g.addColorStop(.55,'#1b1040');
- g.addColorStop(1,'#080817');
- ctx.fillStyle=g;
- ctx.fillRect(0,0,w,h);
-
- // Futuristic city skyline
- for(let i=0;i<13;i++){
-  let x=i*40-8;
-  let bh=110+(i*37%170);
-  ctx.fillStyle=i%2?'#151238':'#201447';
-  ctx.fillRect(x,245-bh,31,bh+160);
-  for(let y=260-bh;y<390;y+=22){
-   ctx.fillStyle=(i+y)%3?'#a43fff':'#40eaff';
-   ctx.globalAlpha=.45;
-   ctx.fillRect(x+7,y,4,8);
-   ctx.fillRect(x+18,y,4,8);
-   ctx.globalAlpha=1;
+ for(let z=-10;z>-220;z-=12){
+  for(let x of [-1.6,1.6]){
+   let m=box(.045,.04,5,mat(0x45206f,0x8b36ff),x,.01,z);
+   world.push({mesh:m,kind:'marker'});
   }
  }
-
- // Neon road
- ctx.fillStyle='#090a20';
- ctx.beginPath();
- ctx.moveTo(160,180);
- ctx.lineTo(320,180);
- ctx.lineTo(480,700);
- ctx.lineTo(0,700);
- ctx.closePath();
- ctx.fill();
-
- ctx.strokeStyle='#b044ff';
- ctx.lineWidth=4;
- ctx.shadowColor='#b044ff';
- ctx.shadowBlur=15;
- ctx.beginPath();
- ctx.moveTo(160,180);
- ctx.lineTo(0,700);
- ctx.moveTo(320,180);
- ctx.lineTo(480,700);
- ctx.stroke();
- ctx.shadowBlur=0;
-
- for(let i=1;i<=2;i++){
-  ctx.strokeStyle='#593b9c';
-  ctx.lineWidth=2;
-  ctx.beginPath();
-  ctx.moveTo(i===1?213:267,180);
-  ctx.lineTo(i===1?160:320,700);
-  ctx.stroke();
- }
-
- for(let y=(frame*speed*2)%85;y<700;y+=85){
-  let p=(y-180)/520;
-  ctx.fillStyle='#6c46ff';
-  ctx.globalAlpha=.25+p*.7;
-  ctx.fillRect(237,y,6,18+p*20);
-  ctx.globalAlpha=1;
- }
-
- // Obstacles and energy
- objects.forEach(o=>{
-  let p=Math.max(.15,(o.y+80)/780);
-  let x=240+(o.lane-1)*p*150;
-  let s=18+p*30;
-
-  ctx.save();
-  ctx.translate(x,o.y);
-  ctx.shadowBlur=22;
-  ctx.shadowColor=o.type==='orb'?'#4df7ff':'#ff3dbd';
-
-  if(o.type==='orb'){
-   ctx.fillStyle='#63f7ff';
-   ctx.beginPath();
-   ctx.arc(0,0,s*.55,0,Math.PI*2);
-   ctx.fill();
-   ctx.strokeStyle='white';
-   ctx.stroke();
-  }else{
-   ctx.fillStyle=o.type==='barrier'?'#ff9c37':'#ff3fae';
-   rounded(-s/2,-s/2,s,s,8);
-   ctx.strokeStyle='#ffd6ff';
-   ctx.lineWidth=2;
-   ctx.strokeRect(-s/2,-s/2,s,s);
-  }
-  ctx.restore();
- });
-
- // Runner
- let py=585-(jumpT>0?
-  Math.sin((34-jumpT)/34*Math.PI)*105:0);
-
- ctx.fillStyle='#02030a88';
- ctx.beginPath();
- ctx.ellipse(playerX,610,28,8,0,0,Math.PI*2);
- ctx.fill();
-
- ctx.save();
- ctx.translate(playerX,py);
- ctx.shadowBlur=25;
- ctx.shadowColor=phaseT?'#43f7ff':'#e34dff';
- ctx.fillStyle=phaseT?'#53f7ff':'#c65bff';
- rounded(-19,-29,38,58,12);
- ctx.fillStyle='#f4ffff';
- rounded(-11,-16,7,7,2);
- rounded(4,-16,7,7,2);
- ctx.restore();
-
- if(phaseT>0){
-  ctx.strokeStyle='#4cf6ff';
-  ctx.lineWidth=4;
-  ctx.beginPath();
-  ctx.arc(playerX,py,43+Math.sin(frame*.3)*5,0,Math.PI*2);
-  ctx.stroke();
- }
-
- particles.forEach(p=>{
-  ctx.globalAlpha=p.life/24;
-  ctx.fillStyle=p.color;
-  ctx.fillRect(p.x,p.y,4,4);
-  ctx.globalAlpha=1;
- });
 }
 
-function loop(t){
- if(!running||paused)return;
+function buildCity(){
+ const colors=[0x241044,0x17153b,0x2a1038,0x102b42];
 
- let dt=Math.min(2,(t-last||16.7)/16.7);
- last=t;
- frame++;
+ for(let side of [-1,1]){
+  for(let i=0;i<34;i++){
+   let z=-i*7-8;
+   let w=2+Math.random()*3;
+   let h=5+Math.random()*22;
+   let x=side*(8+Math.random()*12);
 
- score+=Math.max(1,Math.floor(dt));
- speed=Math.min(9,4.2+score/850);
+   let b=box(w,h,3+Math.random()*5,
+    mat(colors[i%4],0x160d31),x,h/2-.2,z);
 
- playerX+=(laneX[lane]-playerX)*Math.min(1,.24*dt);
+   world.push({mesh:b,kind:'building'});
 
- if(frame%Math.max(27,Math.floor(68-score/90))===0)spawn();
-
- objects.forEach(o=>o.y+=speed*dt*1.15);
-
- for(let i=objects.length-1;i>=0;i--){
-  let o=objects[i];
-
-  if(o.y>545&&o.y<625&&o.lane===lane){
-   if(o.type==='orb'){
-    energy++;
-    addParticles(playerX,o.y,'#55f5ff',12);
-    objects.splice(i,1);
-   }else if(phaseT<=0&&jumpT<12){
-    end();
-    return;
+   for(let j=0;j<Math.min(7,Math.floor(h/2));j++){
+    if(Math.random()>.36){
+     let c=Math.random()>.5?0x1bdaef:0xff38cf;
+     let win=box(.09,.35,.04,mat(c,c),
+      x+(Math.random()-.5)*w*.7,
+      .8+j*1.1,z+2.03);
+     world.push({mesh:win,kind:'window'});
+    }
    }
   }
  }
 
- objects=objects.filter(o=>o.y<740);
-
- particles.forEach(p=>{
-  p.x+=p.vx;
-  p.y+=p.vy;
-  p.life--;
- });
- particles=particles.filter(p=>p.life>0);
-
- if(jumpT>0)jumpT=Math.max(0,jumpT-dt);
- if(phaseT>0)phaseT=Math.max(0,phaseT-dt);
-
- if(score>best){
-  best=score;
-  localStorage.setItem('riftBest',best);
- }
-
- hud();
- draw();
- raf=requestAnimationFrame(loop);
+ let dome=new THREE.Mesh(
+  new THREE.SphereGeometry(65,32,16),
+  new THREE.MeshBasicMaterial({color:0x160b31,side:THREE.BackSide})
+ );
+ dome.position.y=20;
+ scene.add(dome);
 }
 
-// Finger swipe controls
-let sx=0,sy=0,tracking=false;
+function buildPlayer(){
+ player=new THREE.Group();
+ scene.add(player);
+ player.position.set(0,0,2);
 
-canvas.addEventListener('pointerdown',e=>{
- sx=e.clientX;
- sy=e.clientY;
- tracking=true;
- canvas.setPointerCapture(e.pointerId);
-});
+ const suit=mat(0x29204c,0x7b35ff);
+ const glow=mat(0x23eaff,0x23eaff);
+ const pink=mat(0xff4bd5,0xff32d5);
+ const skin=mat(0xf2b7a2,0x7c2d55);
+ const dark=mat(0x111020,0x241344);
 
-canvas.addEventListener('pointerup',e=>{
- if(!tracking)return;
- tracking=false;
-
- let dx=e.clientX-sx;
- let dy=e.clientY-sy;
-
- if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;
-
- if(Math.abs(dx)>Math.abs(dy)){
-  steer(dx>0?1:-1);
- }else if(dy<0){
-  jump();
+ function part(geo,m,x,y,z){
+  let o=new THREE.Mesh(geo,m);
+  o.position.set(x,y,z);
+  o.castShadow=true;
+  player.add(o);
+  return o;
  }
-});
 
-canvas.addEventListener('pointercancel',()=>{
- tracking=false;
-});
+ let torso=part(new THREE.CapsuleGeometry(.36,.72,5,10),suit,0,1.45,0);
+ torso.scale.set(1,.95,.72);
 
-$('startBtn').onclick=start;
-$('phaseBtn').onclick=phase;
+ part(new THREE.SphereGeometry(.29,16,12),skin,0,2.35,0);
+ part(new THREE.SphereGeometry(.3,16,12),dark,0,2.43,-.05).scale.set(1,.38,1);
+ part(new THREE.BoxGeometry(.43,.12,.09),glow,0,2.39,.255);
 
-$('pauseBtn').onclick=()=>{
- if(!running)return;
- paused=!paused;
- $('pauseBtn').textContent=paused?'▶':'Ⅱ';
+ part(new THREE.BoxGeometry(.12,.65,.08),pink,-.39,1.48,.02);
+ part(new THREE.BoxGeometry(.12,.65,.08),glow,.39,1.48,.02);
+ part(new THREE.BoxGeometry(.55,.25,.4),dark,0,.93,0);
 
- if(!paused){
-  last=0;
-  raf=requestAnimationFrame(loop);
- }else{
-  cancelAnimationFrame(raf);
+ const limbs=[];
+ for(let side of [-1,1]){
+  let arm=new THREE.Group();
+  arm.position.set(side*.43,1.85,0);
+  player.add(arm);
+
+  let upper=new THREE.Mesh(new THREE.CapsuleGeometry(.12,.42,4,8),suit);
+  upper.position.y=-.24;
+  arm.add(upper);
+
+  let hand=new THREE.Mesh(new THREE.SphereGeometry(.13,10,8),glow);
+  hand.position.y=-.52;
+  arm.add(hand);
+  limbs.push(arm);
+
+  let leg=new THREE.Group();
+  leg.position.set(side*.19,.88,0);
+  player.add(leg);
+
+  let thigh=new THREE.Mesh(new THREE.CapsuleGeometry(.15,.43,4,8),suit);
+  thigh.position.y=-.28;
+  leg.add(thigh);
+
+  let boot=new THREE.Mesh(new THREE.BoxGeometry(.27,.18,.48),dark);
+  boot.position.set(0,-.59,.11);
+  leg.add(boot);
+
+  let sole=new THREE.Mesh(new THREE.BoxGeometry(.28,.045,.49),pink);
+  sole.position.set(0,-.68,.11);
+  leg.add(sole);
+  limbs.push(leg);
  }
-};
 
-document.addEventListener('keydown',e=>{
- if(e.key==='ArrowLeft')steer(-1);
- if(e.key==='ArrowRight')steer(1);
- if(e.key==='ArrowUp'||e.key===' ')jump();
+ player.userData.limbs=limbs;
+ player.userData.torso=torso;
+}
+
+function resize(){
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
+               }
+ function audioStart(){
+ if(audioCtx){
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  return;
+ }
+ try{
+  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  master=audioCtx.createGain();
+  master.gain.value=musicOn?.23:0;
+  master.connect(audioCtx.destination);
+  musicLoop();
+ }catch(e){}
+}
+
+function tone(freq,dur,type='sine',vol=.08,delay=0){
+ if(!audioCtx||!musicOn)return;
+ let t=audioCtx.currentTime+delay;
+ let o=audioCtx.createOscillator();
+ let g=audioCtx.createGain();
+ o.type=type;
+ o.frequency.setValueAtTime(freq,t);
+ g.gain.setValueAtTime(.0001,t);
+ g.gain.exponentialRampToValueAtTime(vol,t+.015);
+ g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+ o.connect(g);
+ g.connect(master);
+ o.start(t);
+ o.stop(t+dur+.03);
+}
+
+function musicLoop(){
+ if(!audioCtx)return;
+ let notes=[110,164.81,220,164.81,130.81,196,261.63,196];
+ let n=0;
+ function beat(){
+  if(!audioCtx||!musicOn)return;
+  let f=notes[n++%notes.length];
+  tone(f,.42,'triangle',.025);
+  tone(f*2,.22,'sine',.012,.08);
+  musicTimer=setTimeout(beat,390);
+ }
+ beat();
+}
+
+function sfx(type){
+ if(!audioCtx)return;
+ if(type==='jump'){
+  tone(320,.16,'sawtooth',.07);
+  tone(620,.22,'sine',.05,.08);
+ }
+ if(type==='coin'){
+  tone(880,.12,'sine',.08);
+  tone(1320,.18,'sine',.06,.08);
+ }
+ if(type==='hit'){
+  tone(140,.45,'sawtooth',.12);
+  tone(75,.5,'square',.08,.08);
+ }
+ if(type==='shift'){
+  tone(440,.16,'triangle',.07);
+  tone(660,.2,'triangle',.06,.1);
+ }
+ if(type==='slide')tone(220,.14,'triangle',.04);
+}
+
+function toggleSound(){
+ musicOn=!musicOn;
+ if(master)master.gain.setTargetAtTime(
+  musicOn?.23:0,audioCtx.currentTime,.08
+ );
+ $('soundBtn').textContent=musicOn?'♫':'♪';
+ if(musicOn&&audioCtx&&!musicTimer)musicLoop();
+}
+
+function showToast(t){
+ $('centerToast').textContent=t;
+ $('centerToast').style.opacity=1;
+ clearTimeout(toastTimer);
+ toastTimer=setTimeout(()=>{
+  $('centerToast').style.opacity=0;
+ },700);
+}
+
+function reset(){
+ obstacles.forEach(o=>scene.remove(o));
+ pickups.forEach(o=>scene.remove(o));
+ obstacles=[];
+ pickups=[];
+
+ distance=score=shards=0;
+ speed=18;
+ spawnTimer=.7;
+ pickupTimer=.8;
+ lane=targetLane=0;
+ jumpY=jumpV=slide=0;
+ dead=false;
+ paused=false;
+ running=true;
+
+ player.position.set(0,0,2);
+ player.rotation.set(0,0,0);
+
+ $('distance').textContent='0 m';
+ $('score').textContent='0';
+ $('shards').textContent='0';
+
+ $('startOverlay').style.display='none';
+ $('overOverlay').style.display='none';
+ $('pauseOverlay').style.display='none';
+ $('hud').style.display='block';
+
+ clock.getDelta();
+}
+
+function spawnObstacle(){
+ let l=Math.floor(Math.random()*3)-1;
+ let type=Math.random()<.22?'gate':
+  (Math.random()<.5?'block':'bar');
+
+ let g=new THREE.Group();
+ let m=type==='gate'
+  ?mat(0xff2bcb,0xff24c8)
+  :mat(0x542b9a,0xc22cff);
+
+ if(type==='block'){
+  let a=new THREE.Mesh(
+   new THREE.BoxGeometry(1.65,1.35,1.1),m
+  );
+  a.position.y=.68;
+  g.add(a);
+
+  let stripe=new THREE.Mesh(
+   new THREE.BoxGeometry(1.72,.12,1.15),
+   mat(0x30eaff,0x30eaff)
+  );
+  stripe.position.y=1.1;
+  g.add(stripe);
+ }
+ else if(type==='bar'){
+  let a=new THREE.Mesh(
+   new THREE.BoxGeometry(2.15,.42,.9),m
+  );
+  a.position.y=1.12;
+  g.add(a);
+
+  let p=new THREE.Mesh(
+   new THREE.BoxGeometry(.18,1.3,.8),m
+  );
+  p.position.set(-.98,.55,0);
+  g.add(p);
+
+  let p2=p.clone();
+  p2.position.x=.98;
+  g.add(p2);
+ }
+ else{
+  let a=new THREE.Mesh(
+   new THREE.TorusGeometry(1.1,.13,8,24),m
+  );
+  a.position.y=1.45;
+  g.add(a);
+  g.userData.gate=true;
+ }
+
+ g.position.set([-3.2,0,3.2][l+1],0,-100);
+ scene.add(g);
+ obstacles.push(g);
+ g.userData.lane=l;
+ g.userData.type=type;
+}
+
+function spawnPickup(){
+ let l=Math.floor(Math.random()*3)-1;
+ for(let i=0;i<5;i++){
+  let m=new THREE.Mesh(
+   new THREE.OctahedronGeometry(.32),
+   mat(0x35f5ff,0x35f5ff,.2,.5)
+  );
+  m.position.set([-3.2,0,3.2][l+1],1.15,-105-i*3.3);
+  scene.add(m);
+  pickups.push(m);
+ }
+}
+ function jump(){
+  if(!running||dead||jumpY>0.05)return;
+  if(slide>0)return;
+  jumpV=10.5;
+  sfx(620,0.13,'triangle');
+}
+
+function doSlide(){
+  if(!running||dead||slide>0||jumpY>0.1)return;
+  slide=0.75;
+  sfx(180,0.12,'sawtooth');
+}
+
+function steer(direction){
+  if(!running||dead)return;
+  targetLane=Math.max(-1,Math.min(1,targetLane+direction));
+  sfx(330,0.07,'sine');
+}
+
+function shift(){
+  if(!player)return;
+  const target=laneX[targetLane+1];
+  player.position.x+=(target-player.position.x)*0.18;
+}
+
+function endGame(){
+  if(dead)return;
+  dead=true;
+  running=false;
+  const finalScore=Math.floor(score);
+  if(finalScore>bestScore){
+    bestScore=finalScore;
+    localStorage.rrBestScore=bestScore;
+  }
+  if(distance>best){
+    best=Math.floor(distance);
+    localStorage.rrBest=best;
+  }
+  $('finalScore').textContent=finalScore;
+  $('finalShards').textContent=shards;
+  $('gameOver').classList.add('show');
+  $('pauseBtn').textContent='Ⅱ';
+  sfx(100,0.45,'sawtooth');
+}
+
+function update(dt){
+  if(!running||paused||dead)return;
+
+  dt=Math.min(dt,0.04);
+  distance+=speed*dt;
+  score+=speed*dt*2;
+  speed=Math.min(34,18+distance*0.012);
+
+  if(jumpY>0||jumpV>0){
+    jumpY+=jumpV*dt;
+    jumpV-=25*dt;
+    if(jumpY<0){
+      jumpY=0;
+      jumpV=0;
+    }
+  }
+
+  if(slide>0)slide=Math.max(0,slide-dt);
+
+  if(player){
+    shift();
+    player.position.y=jumpY;
+    player.rotation.z+=(0-player.rotation.z)*0.15;
+    player.scale.y=slide>0?0.62:1;
+    player.position.y+=slide>0?-0.35:0;
+  }
+
+  for(const item of world){
+    const obj=item.mesh||item;
+    if(!obj||!obj.position)continue;
+    if(item.speed!==undefined)obj.position.z+=item.speed*dt;
+    else if(item.moveSpeed!==undefined)obj.position.z+=item.moveSpeed*dt;
+  }
+
+  for(const ob of obstacles){
+    const obj=ob.mesh||ob.group||ob;
+    if(!obj||!obj.position)continue;
+    obj.position.z+=speed*dt;
+
+    const lane=ob.lane!==undefined?ob.lane:0;
+    const close=Math.abs(obj.position.z-2)<1.25;
+    const sameLane=Math.abs(player.position.x-laneX[lane+1])<1.25;
+
+    if(close&&sameLane){
+      let safe=false;
+      if(ob.type==='block')safe=jumpY>1.55;
+      if(ob.type==='bar')safe=slide>0;
+      if(!safe)endGame();
+    }
+  }
+
+  for(const item of pickups){
+    const obj=item.mesh||item.group||item;
+    if(!obj||!obj.position||item.collected)continue;
+    obj.position.z+=speed*dt;
+
+    const lane=item.lane!==undefined?item.lane:0;
+    const close=Math.abs(obj.position.z-2)<1.5;
+    const sameLane=Math.abs(player.position.x-laneX[lane+1])<1.3;
+    const heightClose=Math.abs(obj.position.y-(1.15+jumpY))<1.5;
+
+    if(close&&sameLane&&heightClose){
+      item.collected=true;
+      obj.visible=false;
+      shards++;
+      score+=50;
+      sfx(880,0.1,'sine');
+    }
+  }
+
+  obstacles=obstacles.filter(item=>{
+    const obj=item.mesh||item.group||item;
+    return obj&&obj.position&&obj.position.z<18;
+  });
+
+  pickups=pickups.filter(item=>{
+    const obj=item.mesh||item.group||item;
+    return !item.collected&&obj&&obj.position&&obj.position.z<18;
+  });
+
+  spawnTimer-=dt;
+  pickupTimer-=dt;
+
+  if(spawnTimer<=0){
+    spawnObstacle();
+    spawnTimer=Math.max(0.72,1.35-distance/900);
+  }
+
+  if(pickupTimer<=0){
+    spawnPickup();
+    pickupTimer=1.1+Math.random()*0.7;
+  }
+
+  $('distance').textContent=Math.floor(distance)+' m';
+  $('score').textContent=Math.floor(score);
+  $('shards').textContent=shards;
+  $('best').textContent=Math.max(best,bestScore);
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  if(!renderer||!scene||!camera)return;
+
+  const dt=clock.getDelta();
+  update(dt);
+
+  if(player&&running&&!dead){
+    const t=performance.now()*0.001;
+    if(jumpY===0&&slide===0){
+      player.rotation.x=Math.sin(t*13)*0.035;
+    }else{
+      player.rotation.x=0;
+    }
+  }
+
+  renderer.render(scene,camera);
+}
+
+function pause(){
+  if(!running||dead)return;
+  paused=true;
+  running=false;
+  $('pauseOverlay').classList.add('show');
+}
+
+function resume(){
+  if(dead)return;
+  paused=false;
+  running=true;
+  $('pauseOverlay').classList.remove('show');
+  clock.getDelta();
+}
+
+function startGame(){
+  audioStart();
+  $('startScreen').classList.remove('show');
+  $('gameOver').classList.remove('show');
+  $('pauseOverlay').classList.remove('show');
+  reset();
+  running=true;
+  paused=false;
+  dead=false;
+  clock.getDelta();
+}
+
+function bindButton(id,action){
+  const element=$(id);
+  if(element)element.addEventListener('click',action);
+}
+
+bindButton('startBtn',startGame);
+bindButton('restartBtn',startGame);
+bindButton('pauseBtn',()=>{
+  if(paused)resume();
+  else pause();
+});
+bindButton('resumeBtn',resume);
+bindButton('leftBtn',()=>steer(-1));
+bindButton('rightBtn',()=>steer(1));
+bindButton('jumpBtn',jump);
+bindButton('slideBtn',doSlide);
+bindButton('soundBtn',toggleSound);
+
+bindButton('howBtn',()=>{
+  alert('Swipe LEFT or RIGHT to change lanes. Swipe UP to jump over blocks. Swipe DOWN to slide under barriers. Collect glowing shards and avoid obstacles!');
 });
 
-draw();
-hud();
-</script>
-</body>
-</html>
+let touchStartX=0;
+let touchStartY=0;
+
+game.addEventListener('touchstart',event=>{
+  const touch=event.changedTouches[0];
+  touchStartX=touch.clientX;
+  touchStartY=touch.clientY;
+},{passive:true});
+
+game.addEventListener('touchend',event=>{
+  const touch=event.changedTouches[0];
+  const dx=touch.clientX-touchStartX;
+  const dy=touch.clientY-touchStartY;
+
+  if(Math.max(Math.abs(dx),Math.abs(dy))<25)return;
+
+  if(Math.abs(dx)>Math.abs(dy)){
+    steer(dx>0?1:-1);
+  }else if(dy<0){
+    jump();
+  }else{
+    doSlide();
+  }
+},{passive:true});
+
+window.addEventListener('keydown',event=>{
+  if(event.key==='ArrowLeft'||event.key.toLowerCase()==='a')steer(-1);
+  if(event.key==='ArrowRight'||event.key.toLowerCase()==='d')steer(1);
+  if(event.key==='ArrowUp'||event.key===' ')jump();
+  if(event.key==='ArrowDown'||event.key.toLowerCase()==='s')doSlide();
+  if(event.key==='Escape'){
+    if(paused)resume();
+    else pause();
+  }
+});
+
+window.addEventListener('resize',resize);
+
+init();
+animate();
