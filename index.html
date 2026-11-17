@@ -3,287 +3,121 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>RIFT RUNNER: NEON DRIFT</title>
 <style>
 *{box-sizing:border-box}
+html,body{
+ margin:0;width:100%;height:100%;overflow:hidden;
+ background:#070816;color:white;
+ font-family:system-ui,Arial,sans-serif;
+ touch-action:none
+}
 body{
- margin:0;background:#09051b;color:white;
- font-family:Arial,sans-serif;text-align:center;
+ display:flex;align-items:center;justify-content:center;
+ background:radial-gradient(ellipse at 50% 0%,#24134b,#09091b 55%,#03040b)
 }
-h1{color:#e9a5ff;letter-spacing:3px;margin:16px 0 5px}
-p{color:#c7b5e8}
-.hud{
- display:flex;justify-content:space-around;
- max-width:480px;margin:15px auto;font-weight:bold;
+#shell{
+ position:relative;width:min(100vw,480px);
+ height:min(100dvh,850px);min-height:500px;
+ display:flex;flex-direction:column;padding:12px;gap:8px
 }
-canvas{
- display:block;width:94%;max-width:480px;
- height:auto;margin:10px auto;
- border:2px solid #a94cff;border-radius:15px;
- background:#100a2b;touch-action:pan-y;
+header{display:flex;justify-content:space-between;align-items:center}
+.brand{
+ font-weight:1000;letter-spacing:2px;font-size:23px;
+ color:white;text-shadow:0 0 14px #ff4fd8
 }
+.brand small{
+ display:block;font-size:9px;letter-spacing:4px;
+ color:#56f4ff
+}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.stat{
+ background:#11132c;border:1px solid #6244a9;
+ border-radius:12px;padding:7px;text-align:center
+}
+.stat span{display:block;color:#aaa;font-size:9px}
+.stat b{font-size:17px}
+#gameWrap{
+ position:relative;flex:1;min-height:0;
+ border:1px solid #8b58ff;border-radius:18px;
+ overflow:hidden;box-shadow:0 0 25px #8c39ff55;
+ background:#08091d
+}
+canvas{width:100%;height:100%;display:block;touch-action:none}
+#overlay{
+ position:absolute;inset:0;display:flex;
+ flex-direction:column;align-items:center;
+ justify-content:center;text-align:center;padding:28px;
+ background:#08091de8
+}
+#overlay.hidden{display:none}
+#overlay h1{
+ font-size:36px;line-height:1;margin:0 0 10px;
+ text-shadow:0 0 20px #ff4fd8
+}
+#overlay p{color:#d5d0f5;line-height:1.5;font-size:13px}
 button{
- background:linear-gradient(135deg,#a832ff,#ed49c9);
- color:white;border:0;border-radius:12px;
- padding:13px;margin:5px;font-weight:bold;
- font-size:14px;
+ border:0;border-radius:13px;padding:13px 20px;
+ color:white;font-weight:900;letter-spacing:1px;
+ background:linear-gradient(110deg,#8d3dff,#ed42c9);
+ font-size:13px
 }
-#message{color:#e6baff;min-height:25px}
+#controls{display:flex;justify-content:space-between;gap:8px}
+#controls button{flex:1}
+#phaseBtn{background:linear-gradient(110deg,#087eaa,#6545e8)}
+#pauseBtn{flex:0 0 54px;background:#202346}
+.hint{text-align:center;color:#aaa8d2;font-size:10px}
+#toast{
+ position:absolute;top:12px;left:50%;
+ transform:translateX(-50%);
+ background:#11132d;border:1px solid #56f4ff;
+ border-radius:20px;padding:7px 13px;
+ font-size:11px;font-weight:900;opacity:0;
+ pointer-events:none
+}
+#toast.show{opacity:1}
 </style>
 </head>
 <body>
+<div id="shell">
+<header>
+ <div class="brand">RIFT RUNNER
+  <small>NEON DRIFT · ENTER THE UNKNOWN</small>
+ </div>
+ <div style="font-size:11px;color:#bcb5ef">
+  VYRQELUNE<br>STUDIOS
+ </div>
+</header>
 
-<h1>RIFT RUNNER</h1>
-<p>NEON DRIFT · ENTER THE UNKNOWN</p>
-
-<div class="hud">
-<span>SCORE: <b id="score">0</b></span>
-<span>BEST: <b id="best">0</b></span>
-<span>ENERGY: <b id="energy">0</b></span>
+<div class="stats">
+ <div class="stat"><span>SCORE</span><b id="score">0</b></div>
+ <div class="stat"><span>BEST</span><b id="best">0</b></div>
+ <div class="stat"><span>ENERGY</span><b id="energy">0</b></div>
 </div>
 
-<canvas id="game" width="480" height="650"></canvas>
-
-<div id="message">Ready to enter the Rift?</div>
-
-<div>
-<button onclick="move(-1)">◀ LEFT</button>
-<button onclick="phase()">⚡ RIFT SHIFT</button>
-<button onclick="move(1)">RIGHT ▶</button>
+<div id="gameWrap">
+ <canvas id="game" width="480" height="700"></canvas>
+ <div id="toast"></div>
+ <div id="overlay">
+  <h1>RIFT RUNNER</h1>
+  <p>Race through the fractured neon city. Dodge hazards, collect energy and survive the rift.</p>
+  <p>
+   SWIPE LEFT / RIGHT to change lanes<br>
+   SWIPE UP to jump<br>
+   Tap RIFT SHIFT to phase through danger
+  </p>
+  <button id="startBtn">START RUN</button>
+ </div>
 </div>
-<div>
-<button onclick="jump()">JUMP</button>
-<button onclick="startGame()">START / RESTART</button>
+
+<div id="controls">
+ <button id="phaseBtn">⚡ RIFT SHIFT · 5</button>
+ <button id="pauseBtn">Ⅱ</button>
+</div>
+<div class="hint">
+ SWIPE LEFT / RIGHT TO STEER · SWIPE UP TO JUMP
+</div>
 </div>
 
 <script>
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
-
-let lane=1;
-let score=0;
-let energy=0;
-let best=Number(localStorage.getItem("riftBest")||0);
-let objects=[];
-let running=false;
-let frame=0;
-let phasing=0;
-let jumping=0;
-let speed=4;
-let animation=null;
-
-document.getElementById("best").textContent=best;
-
-function move(direction){
- if(!running)return;
- lane=Math.max(0,Math.min(2,lane+direction));
-}
-
-function phase(){
- if(!running||energy<5||phasing>0)return;
- energy-=5;
- phasing=100;
- document.getElementById("message").textContent="RIFT SHIFT ACTIVATED!";
- updateHUD();
-}
-
-function jump(){
- if(running&&jumping===0){
-  jumping=100;
- }
-}
-
-function updateHUD(){
- document.getElementById("score").textContent=score;
- document.getElementById("best").textContent=best;
- document.getElementById("energy").textContent=energy;
-}
-
-function drawBackground(){
- let bg=ctx.createLinearGradient(0,0,0,650);
- bg.addColorStop(0,"#09051b");
- bg.addColorStop(1,"#28104d");
- ctx.fillStyle=bg;
- ctx.fillRect(0,0,480,650);
-
- for(let i=0;i<12;i++){
-  let x=i*44;
-  ctx.fillStyle=i%2?"#17113a":"#211044";
-  ctx.fillRect(x,100+(i%3)*35,30,550);
-  for(let y=130+(i%3)*35;y<620;y+=35){
-   ctx.fillStyle="#bd4cff";
-   ctx.fillRect(x+8,y,5,9);
-   ctx.fillStyle="#42dfff";
-   ctx.fillRect(x+19,y,5,9);
-  }
- }
-
- ctx.fillStyle="#100c28";
- ctx.beginPath();
- ctx.moveTo(115,90);
- ctx.lineTo(365,90);
- ctx.lineTo(480,650);
- ctx.lineTo(0,650);
- ctx.closePath();
- ctx.fill();
- 
- ctx.strokeStyle="#a943ff";
- ctx.lineWidth=3;
- ctx.beginPath();
- ctx.moveTo(115,90);
- ctx.lineTo(0,650);
- ctx.moveTo(365,90);
- ctx.lineTo(480,650);
- ctx.stroke();
-
- for(let i=1;i<=2;i++){
-  let x=115+i*83;
-  ctx.strokeStyle="#7041b5";
-  ctx.lineWidth=2;
-  ctx.beginPath();
-  ctx.moveTo(x,90);
-  ctx.lineTo(240+(i-1)*120,650);
-  ctx.stroke();
- }
-
- for(let y=(frame*speed)%70;y<650;y+=70){
-  ctx.fillStyle="#9e4aff";
-  ctx.fillRect(230,y,4,25);
- }
-
- objects.forEach(o=>{
-  let scale=.45+o.y/650;
-  let x=240+(o.lane-1)*scale*125;
-  let size=22+scale*18;
-
-  if(o.type==="orb"){
-   ctx.shadowBlur=18;
-   ctx.shadowColor="#43edff";
-   ctx.fillStyle="#43edff";
-   ctx.beginPath();
-   ctx.arc(x,o.y,size*.45,0,Math.PI*2);
-   ctx.fill();
-  }else{
-   ctx.shadowBlur=15;
-   ctx.shadowColor="#ff38bb";
-   ctx.fillStyle="#ff39a8";
-   ctx.fillRect(x-size/2,o.y-size/2,size,size);
-   ctx.strokeStyle="#ffd4fa";
-   ctx.strokeRect(x-size/2,o.y-size/2,size,size);
-  }
-  ctx.shadowBlur=0;
- });
-
- let px=240+(lane-1)*110;
- let py=550-jumping;
-
- ctx.shadowBlur=25;
- ctx.shadowColor=phasing?"#40faff":"#d34cff";
- ctx.fillStyle=phasing?"#48faff":"#dc8aff";
- ctx.beginPath();
- ctx.roundRect(px-19,py-27,38,54,12);
- ctx.fill();
-
- ctx.fillStyle="white";
- ctx.fillRect(px-10,py-15,7,7);
- ctx.fillRect(px+4,py-15,7,7);
- ctx.shadowBlur=0;
-
- if(phasing>0){
-  ctx.strokeStyle="#43edff";
-  ctx.lineWidth=5;
-  ctx.beginPath();
-  ctx.arc(px,py,40,0,Math.PI*2);
-  ctx.stroke();
- }
-}
-
-function startGame(){
- lane=1;
- score=0;
- energy=0;
- objects=[];
- frame=0;
- phasing=0;
- jumping=0;
- speed=4;
- running=true;
-
- if(animation)cancelAnimationFrame(animation);
-
- document.getElementById("message").textContent="RUNNER ACTIVE!";
- updateHUD();
- loop();
-}
-
-function loop(){
- if(!running)return;
-
- frame++;
- score++;
-
- if(frame%55===0){
-  objects.push({
-   lane:Math.floor(Math.random()*3),
-   y:80,
-   type:Math.random()<.4?"orb":"block"
-  });
- }
-
- objects.forEach(o=>o.y+=speed);
- objects=objects.filter(o=>o.y<700);
- 
- for(let i=objects.length-1;i>=0;i--){
-  let o=objects[i];
-
-  if(o.y>510&&o.y<590&&o.lane===lane){
-   if(o.type==="orb"){
-    energy++;
-    objects.splice(i,1);
-   }else if(phasing<=0&&jumping<35){
-    running=false;
-    document.getElementById("message").textContent=
-     "RIFT COLLISION! Tap RESTART to try again.";
-   }
-  }
- }
-
- if(phasing>0)phasing--;
- if(jumping>0)jumping-=5;
-
- if(score>best){
-  best=score;
-  localStorage.setItem("riftBest",best);
- }
-
- updateHUD();
- drawBackground();
-
- if(running){
-  animation=requestAnimationFrame(loop);
- }
-}
-
-canvas.addEventListener("touchstart",e=>{
- canvas.dataset.x=e.touches[0].clientX;
-});
-
-canvas.addEventListener("touchend",e=>{
- let dx=e.changedTouches[0].clientX-Number(canvas.dataset.x);
- if(Math.abs(dx)>25)move(dx>0?1:-1);
-});
-
-document.addEventListener("keydown",e=>{
- if(e.key==="ArrowLeft")move(-1);
- if(e.key==="ArrowRight")move(1);
- if(e.key===" ")jump();
-});
-
-drawBackground();
-</script>
-</body>
-</html>
-
-
-
