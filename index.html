@@ -298,6 +298,33 @@ const core=ball(runner,.19,cyan,0,1.3,.48);
 const aura=new THREE.PointLight(0x853aff,4,5);aura.position.set(0,1.5,0);runner.add(aura);
 const shieldVisual=new THREE.Mesh(new THREE.SphereGeometry(1.35,18,14),new THREE.MeshBasicMaterial({color:0x39efff,wireframe:true,transparent:true,opacity:.22}));
 shieldVisual.position.y=1.2;shieldVisual.visible=false;runner.add(shieldVisual);
+ const characterSkins={
+ nova:{name:"NOVA",armor:0x29164b,glow:0x503080,black:0x101225,visor:0x172d4c,metal:0xa8c4df,emissive:0x6f24c9,glowEmissive:0x9b4aff},
+ volt:{name:"VOLT",armor:0x29200c,glow:0x66501b,black:0x171713,visor:0x403016,metal:0xd6b95c,emissive:0x9a7110,glowEmissive:0xc99b25},
+ phantom:{name:"PHANTOM",armor:0x30101b,glow:0x641c32,black:0x130d17,visor:0x401426,metal:0xc18b9c,emissive:0x8d123d,glowEmissive:0xc32655},
+ frost:{name:"FROST",armor:0x253747,glow:0x668da5,black:0x101d2a,visor:0x16415a,metal:0xc6e8f5,emissive:0x246c9b,glowEmissive:0x5abde8}
+};
+
+let selectedSkin=localStorage.getItem("riftCharacter")||"nova";
+
+function applyCharacterSkin(){
+ const s=characterSkins[selectedSkin]||characterSkins.nova;
+ armor.color.setHex(s.armor);
+ armor.emissive.setHex(s.emissive);
+ armorLight.color.setHex(s.glow);
+ armorLight.emissive.setHex(s.glowEmissive);
+ black.color.setHex(s.black);
+ visorMat.color.setHex(s.visor);
+ silver.color.setHex(s.metal);
+
+ $("selectedCharacter").textContent="SELECTED: "+s.name;
+
+ document.querySelectorAll(".skinChoice").forEach(b=>{
+  b.classList.toggle("selected",b.dataset.skin===selectedSkin);
+ });
+}
+
+applyCharacterSkin();
 
 let running=false,paused=false,dead=false;
 let lane=1,targetX=0,jump=0,slide=0;
