@@ -546,6 +546,21 @@ function togglePause(){
  if(paused){$("overlay").classList.remove("hidden");panels("pausePanel");}
  else $("overlay").classList.add("hidden");
 }
+ $("charactersBtn").onclick=()=>{
+ applyCharacterSkin();
+ panels("characterPanel");
+};
+
+$("characterBack").onclick=()=>panels("menu");
+
+document.querySelectorAll(".skinChoice").forEach(b=>{
+ b.onclick=()=>{
+  selectedSkin=b.dataset.skin;
+  localStorage.setItem("riftCharacter",selectedSkin);
+  applyCharacterSkin();
+  sound(520,.12,"triangle",.06);
+ };
+});
 $("start").onclick=start;
 $("again").onclick=start;
 $("how").onclick=()=>panels("help");
