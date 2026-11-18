@@ -492,8 +492,7 @@ function reset(){
  shieldVisual.visible=false;
 }
 function panels(id){
- ["menu","help","missionsPanel","pausePanel","over"].forEach(x=>$(x).classList.add("hidden"));
- $(id).classList.remove("hidden");
+ ["menu","characterPanel","help","missionsPanel","pausePanel","over"].forEach(x=>$(x).classList.add("hidden"));
 }
 function start(){
  initAudio();reset();running=true;paused=false;dead=false;
