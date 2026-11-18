@@ -305,19 +305,58 @@ function sound(freq=440,dur=.12,type="sine",vol=.06){
   o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+dur);
  }catch(e){}
 }
+
 function initAudio(){
  try{
-  if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();
-  if(audio.state==="suspended")audio.resume();
-  if(!musicTimer){
-   musicTimer=setInterval(()=>{
-    if(!running||paused||!audio)return;
-    const n=[110,164.8,220,164.8,130.8,196,261.6,196];
-    sound(n[musicStep++%n.length],.16,"triangle",.025);
-   },310);
+  if(!audio) audio=new(window.AudioContext||window.webkitAudioContext)();
+  if(audio.state==="suspended") audio.resume();
+
+  if(musicTimer) return;
+
+  let step=0;
+  const melody=[220,261.63,329.63,392,329.63,261.63,196,246.94,
+                293.66,349.23,440,349.23,293.66,246.94,196,164.81];
+
+  function note(freq,time,duration,type,volume){
+   const osc=audio.createOscillator();
+   const gain=audio.createGain();
+   osc.type=type;
+   osc.frequency.setValueAtTime(freq,time);
+   gain.gain.setValueAtTime(.001,time);
+   gain.gain.linearRampToValueAtTime(volume,time+.025);
+   gain.gain.exponentialRampToValueAtTime(.001,time+duration);
+   osc.connect(gain);
+   gain.connect(audio.destination);
+   osc.start(time);
+   osc.stop(time+duration+.03);
   }
- }catch(e){}
+
+  musicTimer=setInterval(()=>{
+   if(!running||paused||!audio)return;
+
+   const t=audio.currentTime;
+   const n=melody[step%melody.length];
+
+   note(n,t,.24,"sawtooth",.035);
+   note(n/2,t,.38,"triangle",.055);
+
+   if(step%4===0){
+    note(65,t,.22,"sine",.12);
+    note(130,t+.02,.12,"triangle",.045);
+   }
+
+   if(step%2===1){
+    note(n*2,t,.12,"square",.012);
+   }
+
+   step++;
+  },230);
+
+ }catch(e){
+  console.log("Music could not start:",e);
+ }
 }
+
 
 function makeObstacle(type,l,z){
  const g=new THREE.Group();
